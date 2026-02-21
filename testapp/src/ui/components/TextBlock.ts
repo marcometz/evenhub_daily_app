@@ -27,8 +27,6 @@ export function buildDetailViewModel(
 
   const content = truncateText(
     [
-      "RSS-Detail",
-      "",
       detail.title,
       "",
       activePage,
@@ -37,8 +35,6 @@ export function buildDetailViewModel(
       `Seite: ${pageIndex + 1}/${pageCount}`,
       `AutoScroll: ${options.autoScrollEnabled ? "AN" : "AUS"}`,
       "Click: AutoScroll",
-      "Up/Down: Vorheriger/Nachster",
-      "DoubleClick: Zuruck zur Liste",
     ].join("\n")
   );
 

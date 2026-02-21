@@ -52,7 +52,7 @@ export function buildLayout(viewModel: ViewModel): LayoutPayload {
         isEventCapture: list.eventCapture && !eventCaptureAssigned ? 1 : 0,
         itemContainer: {
           itemCount: list.items.length,
-          itemWidth: 0,
+          itemWidth: 565,
           isItemSelectBorderEn: 1,
           itemName: list.items,
         },
