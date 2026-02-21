@@ -9,11 +9,15 @@ When to use
 - Exclude non-UI tasks (API integrations, storage, CI, release workflows).
 - If multiple skills match, use this order: `ui_agent -> even_agent -> architecture` (architecture only for code-change compliance checks).
 
-Sources (local copies)
-- SDK README: `testapp/node_modules/@evenrealities/even_hub_sdk/README.md`
-- SDK types: `testapp/node_modules/@evenrealities/even_hub_sdk/dist/index.d.ts`
+Sources
+- Official SDK README: `testapp/node_modules/@evenrealities/even_hub_sdk/README.md`
+- Official SDK types: `testapp/node_modules/@evenrealities/even_hub_sdk/dist/index.d.ts`
 - UI pipeline: `testapp/src/ui`
 - Bridge wrapper: `testapp/src/bridge/evenHubBridge.ts`
+- G2 notes (Browser UI components, community/reverse-engineered): `https://github.com/nickustinov/even-g2-notes/blob/main/G2.md#browser-ui-component-library`
+- Priority rule:
+  - Official SDK sources are authoritative for glasses rendering and bridge behavior.
+  - G2 notes are supplemental for companion Browser/WebView UI guidance.
 
 Local monitoring
 - Dev URL for live UI/manual log inspection: `http://localhost:5173`
@@ -29,6 +33,37 @@ Supported primitives
   - `rebuildPageContainer`
   - `textContainerUpgrade`
   - `updateImageRawData`
+
+Browser UI (WebView companion, not glasses canvas)
+- Purpose:
+  - Use `@jappyjan/even-realities-ui` for companion config/settings screens in Browser/WebView.
+- Scope boundary:
+  - These components do not render on the glasses canvas.
+  - Glasses rendering still requires SDK containers and bridge calls.
+- Entry points:
+  - `@jappyjan/even-realities-ui` (full re-export)
+  - `@jappyjan/even-realities-ui/components`
+  - `@jappyjan/even-realities-ui/icons`
+  - `@jappyjan/even-realities-ui/tokens` (currently empty in package)
+  - `@jappyjan/even-realities-ui/styles.css`
+- Install/import:
+  - `npm install @jappyjan/even-realities-ui`
+  - Import stylesheet exactly once globally: `@jappyjan/even-realities-ui/styles.css`
+- Recommended Browser components:
+  - Actions: `Button` (variants/sizes), `IconButton`
+  - Layout: `Card`, `CardHeader`, `CardContent`, `CardFooter`, `Divider`
+  - Text: `Text` (variant-based typography)
+  - Inputs: `Input`, `Textarea`, `Select`
+  - Controls: `Checkbox`, `Radio`, `Switch`
+  - Status/meta: `Badge`, `Chip`
+- Icons:
+  - 90+ icon set, grouped by domain: hardware, battery, navigation, actions, features, settings, general.
+  - Example names: `GlassesIcon`, `BatteryFullIcon`, `BackIcon`, `AddIcon`, `TranslateIcon`, `SettingsIcon`, `InfoIcon`.
+- Tokens (CSS custom properties):
+  - Backgrounds (`--color-bc-*`), surfaces (`--color-sc-*`), text (`--color-tc-*`).
+  - Typography (`--font-size-app-*`), spacing (`--space-*`), layout (`--layout-*`), radius (`--radius-*`).
+- Utility:
+  - `cn(...inputs): string` for class composition (`clsx` + `tailwind-merge`).
 
 Hard constraints
 - Maximum 4 containers per page.
@@ -61,18 +96,30 @@ Representation rules
   - Pre-render externally and deliver as image data via image container updates.
 
 Workflow
-1. Classify request as `text`, `list`, `image`, or `mixed`.
-2. Build a container plan that stays within 4-container budget.
-3. Assign exactly one event-capture container (`isEventCapture=1`).
-4. Produce the API sequence:
+1. Classify request scope as `browser-ui`, `glasses-ui`, or `hybrid`.
+2. If scope is `browser-ui` or `hybrid`, plan companion Browser/WebView UI first:
+   - Choose `@jappyjan/even-realities-ui` entry points.
+   - Map screen sections to component sets and icon/token usage.
+3. If scope is `glasses-ui` or `hybrid`, classify glasses payload as `text`, `list`, `image`, or `mixed`.
+4. Build a glasses container plan that stays within 4-container budget.
+5. Assign exactly one event-capture container (`isEventCapture=1`) for glasses payload.
+6. Produce the glasses API sequence:
    - Initial render: `createStartUpPageContainer`
    - Subsequent pages/major changes: `rebuildPageContainer`
    - Text-only delta: `textContainerUpgrade`
    - Image content: `updateImageRawData` (sequential queue)
-5. If design exceeds SDK limits, provide an explicit fallback layout and note compromises.
+7. If design exceeds SDK limits, provide an explicit fallback layout and note compromises.
 
 Output contract
 - Always return:
+  - Scope classification (`browser-ui`, `glasses-ui`, `hybrid`)
+  - Clear separation between Browser/WebView plan and glasses container plan
+- If Browser/WebView UI is included, also return:
+  - Entry points used
+  - Component list per screen/section
+  - Icon/token usage notes
+  - CSS import note (`styles.css` imported once globally)
+- If glasses UI is included, always return:
   - Container plan (types, positions, sizes, IDs/names)
   - Event-capture assignment
   - API call sequence
@@ -83,3 +130,7 @@ Common pitfalls
 - Assigning `isEventCapture=1` to more than one container.
 - Sending concurrent image updates.
 - Promising native SVG/table features that are not supported by the SDK.
+- Treating Browser/WebView components as if they render on the glasses canvas.
+- Treating `@jappyjan/even-realities-ui` as a replacement for SDK container APIs.
+- Missing global stylesheet import or importing it multiple times.
+- For hybrid screens, mixing Browser/WebView recommendations with device-rendered container output without clear separation.
