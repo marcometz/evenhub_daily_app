@@ -4,7 +4,7 @@ This file indexes custom agents and skills stored in this repository.
 The canonical registry location is `AGENTS.md` at the repository root.
 
 ## Agents
-- ArchitectureAgent: Enforces TestApp architecture layering and responsibilities.
+- ArchitectureAgent: Enforces Daily App architecture layering and responsibilities.
   - Path: .codex/skills/architecture/SKILL.md
 - EvenAgent: Domain knowledge for EvenHub (SDK, Simulator, CLI, navigation rules, event mapping).
   - Path: .codex/skills/even_agent/SKILL.md

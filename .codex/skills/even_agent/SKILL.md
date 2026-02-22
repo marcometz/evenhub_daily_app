@@ -5,7 +5,7 @@ Purpose
 - Translate user intent into correct bridge calls, container layouts, and event mappings.
 
 Sources (local copies)
-- SDK README: testapp/node_modules/@evenrealities/even_hub_sdk/README.md
+- SDK README: daily-app/node_modules/@evenrealities/even_hub_sdk/README.md
 - G2 notes: https://raw.githubusercontent.com/nickustinov/even-g2-notes/main/G2.md
 - CLI help: evenhub --help, evenhub qr --help (local package)
 - Simulator README (global install): @evenrealities/evenhub-simulator

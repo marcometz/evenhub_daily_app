@@ -1,11 +1,11 @@
 # ArchitectureAgent
 
 Purpose
-- Understand and enforce the TestApp folder, component, screen, and service architecture.
+- Understand and enforce the Daily App folder, component, screen, and service architecture.
 - Review changes for layering violations and missing responsibilities.
 
 Scope of knowledge
-- Project: testapp/src
+- Project: daily-app/src
 - Structure:
   - app/: appController, initBridge
   - bridge/: EvenHub bridge wrapper + types

@@ -1,7 +1,7 @@
 # Shopping List Feature
 
 ## 1. Ziel und Scope
-Das Feature erweitert die TestApp um eine Shopping-Liste fuer EvenHub.
+Das Feature erweitert die Daily App um eine Shopping-Liste fuer EvenHub.
 
 Enthalten:
 - Dashboard-Eintrag `Shopping List`
@@ -20,7 +20,7 @@ Nicht enthalten:
 - Direkter Zugriff auf iOS-Erinnerungen ist im aktuellen Stack nicht verfuegbar.
 - Das genutzte SDK (`@evenrealities/even_hub_sdk`) bietet hier nur EvenHub-UI, Device/User und LocalStorage.
 - Apple Reminders benoetigt EventKit in nativer App-Logik mit Berechtigungen.
-- Ergebnis: In dieser WebView/TestApp ohne native Host-Erweiterung kein direkter Reminders-Zugriff.
+- Ergebnis: In dieser WebView/Daily App ohne native Host-Erweiterung kein direkter Reminders-Zugriff.
 
 ## 3. User-Flow
 1. App startet im Dashboard.
@@ -99,5 +99,5 @@ Regression:
 2. Erledigte Eintraege bleiben unter dem Divider.
 
 Build-Check:
-- `npm --prefix testapp run test`
-- `npm --prefix testapp run build`
+- `npm --prefix daily-app run test`
+- `npm --prefix daily-app run build`

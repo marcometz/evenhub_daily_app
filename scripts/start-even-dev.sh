@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-APP_DIR="${APP_DIR:-$ROOT_DIR/testapp}"
+APP_DIR="${APP_DIR:-$ROOT_DIR/daily-app}"
 EVENHUB_BIN="${EVENHUB_BIN:-$ROOT_DIR/node_modules/.bin/evenhub}"
 
 DEV_PORT="${DEV_PORT:-5173}"

@@ -1,7 +1,7 @@
 # RSS-Reader Feature
 
 ## 1. Ziel und Scope
-Das Feature erweitert die TestApp um einen RSS-Reader fuer EvenHub.
+Das Feature erweitert die Daily App um einen RSS-Reader fuer EvenHub.
 
 Enthalten:
 - Dashboard mit Button-Liste (zunaechst ein Eintrag: `RSS-Feeds`)
@@ -134,4 +134,4 @@ Fehlerfaelle:
 3. XML-Parsingfehler: Fehlerstatus, sofern kein verwertbarer Feed vorliegt.
 
 Build-Check:
-- `npm --prefix testapp run build` muss erfolgreich sein.
+- `npm --prefix daily-app run build` muss erfolgreich sein.

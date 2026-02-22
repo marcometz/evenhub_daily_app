@@ -5,15 +5,15 @@ Purpose
 - Standardize how blocks, frames, lists, and pseudo-tables are represented under SDK limits.
 
 When to use
-- Use for requests about UI darstellen/rendern/layout/screen/container/visual structure for EvenHub/TestApp glasses UI.
+- Use for requests about UI darstellen/rendern/layout/screen/container/visual structure for EvenHub/Daily App glasses UI.
 - Exclude non-UI tasks (API integrations, storage, CI, release workflows).
 - If multiple skills match, use this order: `ui_agent -> even_agent -> architecture` (architecture only for code-change compliance checks).
 
 Sources
-- Official SDK README: `testapp/node_modules/@evenrealities/even_hub_sdk/README.md`
-- Official SDK types: `testapp/node_modules/@evenrealities/even_hub_sdk/dist/index.d.ts`
-- UI pipeline: `testapp/src/ui`
-- Bridge wrapper: `testapp/src/bridge/evenHubBridge.ts`
+- Official SDK README: `daily-app/node_modules/@evenrealities/even_hub_sdk/README.md`
+- Official SDK types: `daily-app/node_modules/@evenrealities/even_hub_sdk/dist/index.d.ts`
+- UI pipeline: `daily-app/src/ui`
+- Bridge wrapper: `daily-app/src/bridge/evenHubBridge.ts`
 - G2 notes (Browser UI components, community/reverse-engineered): `https://github.com/nickustinov/even-g2-notes/blob/main/G2.md#browser-ui-component-library`
 - Priority rule:
   - Official SDK sources are authoritative for glasses rendering and bridge behavior.

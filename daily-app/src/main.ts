@@ -42,7 +42,7 @@ interface ShoppingValidationResult {
 const app = requireElement<HTMLDivElement>("#app");
 app.innerHTML = `
   <div class="card">
-    <h1>EvenHub TestApp</h1>
+    <h1>Daily App</h1>
     <p>RSS- und Shopping-Daten fuer die Glaeser konfigurieren.</p>
   </div>
   <div class="card">
