@@ -1,9 +1,9 @@
 export class Logger {
-  info(message: string): void {
-    console.log(`[info] ${message}`);
+  info(message: string, ...args: unknown[]): void {
+    console.log(`[info] ${message}`, ...args);
   }
 
-  debug(message: string): void {
-    console.log(`[debug] ${message}`);
+  debug(message: string, ...args: unknown[]): void {
+    console.log(`[debug] ${message}`, ...args);
   }
 }

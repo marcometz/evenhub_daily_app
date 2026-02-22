@@ -83,8 +83,24 @@ describe("resolveDashboardSelection", () => {
       items: [],
       currentSelectedIndex: 0,
       event: clickByLabelRss,
+      logger: createLogger(),
     });
     expect(result).toEqual({ nextSelectedIndex: 0, targetListId: null });
+  });
+
+  it("logs resolver decisions through injected logger", () => {
+    const { logger, debug } = createSpyLogger();
+    const result = resolveDashboardSelection({
+      items: dashboardItems,
+      currentSelectedIndex: 0,
+      event: clickByLabelShopping,
+      logger,
+    });
+
+    expect(result.targetListId).toBe(SHOPPING_LIST_ID);
+    expect(debug).toHaveBeenCalledWith(
+      expect.stringContaining("Dashboard resolver result -> click, nextIndex:1, target:shopping-list")
+    );
   });
 
   it("keeps current index when click payload is unknown", () => {
@@ -298,6 +314,7 @@ function runResolver(event: InputEvent, currentSelectedIndex: number) {
     items: dashboardItems,
     currentSelectedIndex,
     event,
+    logger: createLogger(),
   });
 }
 

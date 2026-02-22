@@ -40,6 +40,7 @@ export function createDashboardScreen(
         items: dashboard.items,
         currentSelectedIndex: selectedIndex,
         event,
+        logger,
       });
       selectedIndex = result.nextSelectedIndex;
       const previousItem = readDashboardItem(dashboard.items, previousSelectedIndex);
