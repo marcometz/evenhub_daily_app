@@ -3,7 +3,7 @@ import { EvenHubBridge } from "../bridge/evenHubBridge";
 import { createRouter } from "../navigation/router";
 import { ScreenStack } from "../navigation/stack";
 import { createInputDispatcher } from "../input/inputHandlers";
-import { MockDataService } from "../services/data/MockDataService";
+import { RssAppDataService } from "../services/data/RssAppDataService";
 import { RssConfigService } from "../services/data/RssConfigService";
 import { EvenHubStorageService } from "../services/storage/EvenHubStorageService";
 import { createDashboardScreen } from "../screens/DashboardScreen";
@@ -20,7 +20,7 @@ export class AppController {
 
     const storageService = new EvenHubStorageService();
     const rssConfigService = new RssConfigService(storageService);
-    const dataService = new MockDataService(rssConfigService);
+    const dataService = new RssAppDataService(rssConfigService);
 
     this.bridge = await initBridge();
     try {

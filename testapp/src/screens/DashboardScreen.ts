@@ -1,6 +1,7 @@
 import type { Screen } from "../navigation/screen";
 import type { InputEvent } from "../input/keyBindings";
 import type { DataService, ListData } from "../services/data/DataService";
+import { RSS_LIST_ID } from "../services/data/RssAppDataService";
 import type { Logger } from "../utils/logger";
 import type { Router } from "../navigation/router";
 import { clamp } from "../utils/clamp";
@@ -37,7 +38,7 @@ export function createDashboardScreen(
 
       if (event.type === "Click") {
         const selected = dashboard.items[selectedIndex];
-        const targetListId = selected?.listId ?? "rss";
+        const targetListId = selected?.listId ?? RSS_LIST_ID;
         logger.info(`Dashboard click -> list:${targetListId}`);
         router.toList(targetListId);
       }

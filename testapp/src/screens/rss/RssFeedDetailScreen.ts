@@ -1,14 +1,14 @@
-import type { Screen } from "../navigation/screen";
-import type { InputEvent } from "../input/keyBindings";
-import type { DataService } from "../services/data/DataService";
-import type { Logger } from "../utils/logger";
-import type { Router } from "../navigation/router";
-import { buildDetailViewModel } from "../ui/components/TextBlock";
-import type { ViewModel } from "../ui/render/renderPipeline";
+import type { Screen } from "../../navigation/screen";
+import type { InputEvent } from "../../input/keyBindings";
+import type { DataService } from "../../services/data/DataService";
+import type { Logger } from "../../utils/logger";
+import type { Router } from "../../navigation/router";
+import { buildDetailViewModel } from "../../ui/components/RssDetailView";
+import type { ViewModel } from "../../ui/render/renderPipeline";
 
 const AUTOSCROLL_INTERVAL_MS = 2500;
 
-export function createDetailScreen(
+export function createRssFeedDetailScreen(
   itemId: string,
   dataService: DataService,
   logger: Logger,

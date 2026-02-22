@@ -2,16 +2,20 @@ import type { DashboardData, DataService, DetailData, ListData } from "./DataSer
 import { parseRssFeed, type ParsedRssItem } from "./rssParser";
 import { RssConfigService } from "./RssConfigService";
 
-const RSS_LIST_ID = "rss";
+export const RSS_LIST_ID = "rss";
+export const SHOPPING_LIST_ID = "shopping-list";
 const RSS_PROXY_PATH = "/rss-proxy";
 
-export class MockDataService implements DataService {
+export class RssAppDataService implements DataService {
   private rssItems: ParsedRssItem[] = [];
   constructor(private readonly rssConfigService: RssConfigService) {}
 
   private readonly dashboard: DashboardData = {
     title: "Dashboard",
-    items: [{ id: "dashboard-rss", label: "RSS-Feeds", listId: RSS_LIST_ID }],
+    items: [
+      { id: "dashboard-rss", label: "RSS-Feeds", listId: RSS_LIST_ID },
+      { id: "dashboard-shopping-list", label: "Shopping List", listId: SHOPPING_LIST_ID },
+    ],
   };
 
   async refreshList(listId: string): Promise<void> {
