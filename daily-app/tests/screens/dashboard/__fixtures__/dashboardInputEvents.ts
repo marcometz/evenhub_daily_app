@@ -10,6 +10,11 @@ export const clickByLabelShopping: InputEvent = {
   raw: { listEvent: { currentSelectItemName: "Shopping List" } },
 };
 
+export const explicitClickByLabelShopping: InputEvent = {
+  type: "Click",
+  raw: { listEvent: { currentSelectItemName: "Shopping List", eventType: 0 } },
+};
+
 export const clickByItemNameFirst: InputEvent = {
   type: "Click",
   raw: { listEvent: { currentSelectItemName: "item1" } },
@@ -28,6 +33,11 @@ export const clickByZeroBasedIndexFirst: InputEvent = {
 export const clickByZeroBasedIndexSecond: InputEvent = {
   type: "Click",
   raw: { listEvent: { currentSelectItemIndex: 1 } },
+};
+
+export const explicitClickByZeroBasedIndexSecond: InputEvent = {
+  type: "Click",
+  raw: { listEvent: { currentSelectItemIndex: 1, eventType: 0 } },
 };
 
 export const clickByOneBasedIndexSecond: InputEvent = {

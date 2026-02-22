@@ -37,6 +37,17 @@ describe("mapEvenHubEvent", () => {
     expect(mapped).toEqual({ type: "SelectionChange", raw: event });
   });
 
+  it("prefers a supported sys event type when list event type is unknown", () => {
+    const event = {
+      listEvent: { eventType: "ITEM_HOVER_EVENT" },
+      sysEvent: { eventType: OsEventTypeList.SCROLL_BOTTOM_EVENT },
+    } as unknown as EvenHubEvent;
+
+    const mapped = mapEvenHubEvent(event, OsEventTypeList);
+
+    expect(mapped).toEqual({ type: "Down", raw: event });
+  });
+
   it("maps list event without eventType to Click for legacy compatibility", () => {
     const event = {
       listEvent: { currentSelectItemName: "Shopping List" },

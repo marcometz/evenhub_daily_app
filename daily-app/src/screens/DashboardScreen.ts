@@ -8,6 +8,7 @@ import { clamp } from "../utils/clamp";
 import { buildDashboardViewModel } from "../ui/components/DashboardView";
 import type { ViewModel } from "../ui/render/renderPipeline";
 import { resolveDashboardSelection } from "./dashboard/resolveDashboardSelection";
+import { readEventType } from "./shared/readSelectedIndex";
 
 export function createDashboardScreen(
   router: Router,
@@ -27,6 +28,7 @@ export function createDashboardScreen(
     },
     onInput(event: InputEvent) {
       const dashboard = dataService.getDashboard();
+      const previousSelectedIndex = selectedIndex;
       const result = resolveDashboardSelection({
         items: dashboard.items,
         currentSelectedIndex: selectedIndex,
@@ -35,6 +37,9 @@ export function createDashboardScreen(
       selectedIndex = result.nextSelectedIndex;
 
       if (event.type === "Click") {
+        if (isImplicitSelectionUpdateClick(event, previousSelectedIndex, selectedIndex)) {
+          return;
+        }
         const targetListId =
           result.targetListId ?? (dashboard.items.length > 0 ? RSS_LIST_ID : null);
         if (targetListId) {
@@ -51,4 +56,21 @@ export function createDashboardScreen(
       );
     },
   };
+}
+
+function isImplicitSelectionUpdateClick(
+  event: InputEvent,
+  previousSelectedIndex: number,
+  nextSelectedIndex: number
+): boolean {
+  if (event.type !== "Click") {
+    return false;
+  }
+
+  const rawType = readEventType(event);
+  if (rawType !== undefined) {
+    return false;
+  }
+
+  return previousSelectedIndex !== nextSelectedIndex;
 }

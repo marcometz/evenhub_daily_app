@@ -16,33 +16,26 @@ export function mapEvenHubEvent(
   const textType = readEventTypeFromEventPart(event.textEvent);
   const sysType = readEventTypeFromEventPart(event.sysEvent);
   const jsonType = readEventTypeFromJsonData(event);
-  const rawType = listType ?? textType ?? sysType ?? jsonType;
+  const mappedType = mapKnownEventType([listType, textType, sysType, jsonType], osEnum);
+  if (mappedType) {
+    return { type: mappedType, raw: event };
+  }
 
-  if (rawType === undefined) {
+  if (listType === undefined && textType === undefined && sysType === undefined && jsonType === undefined) {
     // Legacy host behavior: list/text events without explicit type are treated as Click.
     if (event.listEvent || event.textEvent) {
       return { type: "Click", raw: event };
     }
-    return null;
-  }
-
-  const normalized = osEnum.fromJson(rawType);
-  if (normalized === undefined) {
     if (hasListSelectionPayload(event)) {
       return { type: "SelectionChange", raw: event };
     }
     return null;
   }
 
-  const mapped = typeMap[normalized];
-  if (!mapped) {
-    if (hasListSelectionPayload(event)) {
-      return { type: "SelectionChange", raw: event };
-    }
-    return null;
+  if (hasListSelectionPayload(event)) {
+    return { type: "SelectionChange", raw: event };
   }
-
-  return { type: mapped, raw: event };
+  return null;
 }
 
 function readEventTypeFromJsonData(event: EvenHubEvent): unknown {
@@ -64,19 +57,47 @@ function readEventTypeFromEventPart(part: unknown): unknown {
   return record.eventType ?? record.event_type ?? record.Event_Type;
 }
 
+function mapKnownEventType(
+  rawTypes: unknown[],
+  osEnum: typeof OsEventTypeList
+): InputEvent["type"] | null {
+  for (const rawType of rawTypes) {
+    if (rawType === undefined) {
+      continue;
+    }
+    const normalized = osEnum.fromJson(rawType);
+    if (normalized === undefined) {
+      continue;
+    }
+
+    const mapped = typeMap[normalized];
+    if (mapped) {
+      return mapped;
+    }
+  }
+
+  return null;
+}
+
 function hasListSelectionPayload(event: EvenHubEvent): boolean {
-  const listEvent = event.listEvent as Record<string, unknown> | undefined;
-  if (!listEvent || typeof listEvent !== "object") {
+  return (
+    hasSelectionPayloadInRecord(event.listEvent as Record<string, unknown> | undefined) ||
+    hasSelectionPayloadInRecord(event.jsonData as Record<string, unknown> | undefined)
+  );
+}
+
+function hasSelectionPayloadInRecord(record: Record<string, unknown> | undefined): boolean {
+  if (!record || typeof record !== "object") {
     return false;
   }
 
-  const name = readStringField(listEvent, [
+  const name = readStringField(record, [
     "currentSelectItemName",
     "current_select_item_name",
     "CurrentSelect_ItemName",
     "currentSelect_ItemName",
   ]);
-  const index = readNumberField(listEvent, [
+  const index = readNumberField(record, [
     "currentSelectItemIndex",
     "current_select_item_index",
     "CurrentSelect_ItemIndex",

@@ -18,6 +18,8 @@ import {
   clickByJsonDataZeroBasedSecond,
   clickByLabelRss,
   clickByLabelShopping,
+  explicitClickByZeroBasedIndexSecond,
+  explicitClickByLabelShopping,
   clickByOneBasedIndexSecond,
   clickByZeroBasedIndexFirst,
   clickByZeroBasedIndexSecond,
@@ -105,12 +107,12 @@ describe("resolveDashboardSelection", () => {
 });
 
 describe("DashboardScreen integration", () => {
-  it("calls router.toList with shopping when shopping click payload arrives", () => {
+  it("calls router.toList with shopping when explicit click payload arrives", () => {
     const toList = vi.fn<(listId: string) => void>();
     const router = { toList, toDetail: vi.fn(), back: vi.fn() };
     const screen = createDashboardScreen(router, createDataService(dashboardItems), createLogger());
 
-    screen.onInput(clickByLabelShopping);
+    screen.onInput(explicitClickByLabelShopping);
 
     expect(toList).toHaveBeenCalledWith(SHOPPING_LIST_ID);
   });
@@ -120,7 +122,7 @@ describe("DashboardScreen integration", () => {
     const router = { toList, toDetail: vi.fn(), back: vi.fn() };
     const screen = createDashboardScreen(router, createDataService(dashboardItems), createLogger());
 
-    const clickEvent: InputEvent = clickByZeroBasedIndexSecond;
+    const clickEvent: InputEvent = explicitClickByZeroBasedIndexSecond;
     screen.onInput(clickEvent);
 
     expect(toList).toHaveBeenCalledWith(SHOPPING_LIST_ID);
@@ -159,6 +161,25 @@ describe("DashboardScreen integration", () => {
       throw new Error("Expected text info container");
     }
     expect(infoContainer.content).toContain("Shopping-Beschreibung");
+  });
+
+  it("updates description on legacy click selection change without opening target list", () => {
+    const toList = vi.fn<(listId: string) => void>();
+    const screen = createDashboardScreen(
+      { toList, toDetail: vi.fn(), back: vi.fn() },
+      createDataService(dashboardItems),
+      createLogger()
+    );
+
+    screen.onInput(clickByLabelShopping);
+    const viewModel = screen.getViewModel();
+    const infoContainer = viewModel.containers[1];
+    if (!infoContainer || infoContainer.type !== "text") {
+      throw new Error("Expected text info container");
+    }
+
+    expect(infoContainer.content).toContain("Shopping-Beschreibung");
+    expect(toList).not.toHaveBeenCalled();
   });
 
   it("updates description on selection-change event without opening target list", () => {
