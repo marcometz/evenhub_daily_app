@@ -39,21 +39,18 @@ export function mapEvenHubEvent(
 }
 
 function readEventTypeFromJsonData(event: EvenHubEvent): unknown {
-  const data = event.jsonData;
-  if (!data || typeof data !== "object") {
+  const record = normalizeRecord(event.jsonData);
+  if (!record) {
     return undefined;
   }
-
-  const record = data as Record<string, unknown>;
   return record.eventType ?? record.event_type ?? record.Event_Type;
 }
 
 function readEventTypeFromEventPart(part: unknown): unknown {
-  if (!part || typeof part !== "object") {
+  const record = normalizeRecord(part);
+  if (!record) {
     return undefined;
   }
-
-  const record = part as Record<string, unknown>;
   return record.eventType ?? record.event_type ?? record.Event_Type;
 }
 
@@ -65,7 +62,7 @@ function mapKnownEventType(
     if (rawType === undefined) {
       continue;
     }
-    const normalized = osEnum.fromJson(rawType);
+    const normalized = osEnum.fromJson(normalizeEventTypeValue(rawType));
     if (normalized === undefined) {
       continue;
     }
@@ -79,15 +76,30 @@ function mapKnownEventType(
   return null;
 }
 
+function normalizeEventTypeValue(rawType: unknown): unknown {
+  if (typeof rawType === "string") {
+    const trimmed = rawType.trim();
+    if (trimmed.length > 0) {
+      const numeric = Number(trimmed);
+      if (Number.isFinite(numeric)) {
+        return numeric;
+      }
+    }
+  }
+
+  return rawType;
+}
+
 function hasListSelectionPayload(event: EvenHubEvent): boolean {
   return (
-    hasSelectionPayloadInRecord(event.listEvent as Record<string, unknown> | undefined) ||
-    hasSelectionPayloadInRecord(event.jsonData as Record<string, unknown> | undefined)
+    hasSelectionPayloadInRecord(event.listEvent) ||
+    hasSelectionPayloadInRecord(event.jsonData)
   );
 }
 
-function hasSelectionPayloadInRecord(record: Record<string, unknown> | undefined): boolean {
-  if (!record || typeof record !== "object") {
+function hasSelectionPayloadInRecord(value: unknown): boolean {
+  const record = normalizeRecord(value);
+  if (!record) {
     return false;
   }
 
@@ -131,4 +143,44 @@ function readStringField(record: Record<string, unknown>, keys: string[]): strin
     }
   }
   return null;
+}
+
+function normalizeRecord(value: unknown): Record<string, unknown> | null {
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return normalizeRecord(parsed);
+    } catch {
+      return null;
+    }
+  }
+
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const base = value as Record<string, unknown>;
+  const toJsonRecord = readToJsonRecord(value);
+  if (!toJsonRecord) {
+    return base;
+  }
+
+  return {
+    ...base,
+    ...toJsonRecord,
+  };
+}
+
+function readToJsonRecord(value: unknown): Record<string, unknown> | null {
+  const candidate = value as { toJson?: () => unknown };
+  if (typeof candidate.toJson !== "function") {
+    return null;
+  }
+
+  try {
+    const json = candidate.toJson();
+    return normalizeRecord(json);
+  } catch {
+    return null;
+  }
 }

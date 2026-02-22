@@ -163,12 +163,35 @@ describe("DashboardScreen integration", () => {
     expect(infoContainer.content).toContain("Shopping-Beschreibung");
   });
 
-  it("updates description on legacy click selection change without opening target list", () => {
+  it("logs marked item on down navigation", () => {
+    const { logger, debug } = createSpyLogger();
+    const screen = createDashboardScreen(createRouter(), createDataService(dashboardItems), logger);
+
+    screen.onInput(downEvent);
+
+    expect(debug).toHaveBeenCalledWith(
+      expect.stringContaining("Dashboard Down marked -> index:1 item:dashboard-shopping-list|Shopping List|list:shopping-list")
+    );
+  });
+
+  it("logs clamped marked item on up navigation at top", () => {
+    const { logger, debug } = createSpyLogger();
+    const screen = createDashboardScreen(createRouter(), createDataService(dashboardItems), logger);
+
+    screen.onInput(upEvent);
+
+    expect(debug).toHaveBeenCalledWith(
+      expect.stringContaining("Dashboard Up marked -> index:0 item:dashboard-rss|RSS-Feeds|list:rss")
+    );
+  });
+
+  it("routes on legacy click payload selection change like shopping list behavior", () => {
     const toList = vi.fn<(listId: string) => void>();
+    const { logger, debug } = createSpyLogger();
     const screen = createDashboardScreen(
       { toList, toDetail: vi.fn(), back: vi.fn() },
       createDataService(dashboardItems),
-      createLogger()
+      logger
     );
 
     screen.onInput(clickByLabelShopping);
@@ -179,15 +202,42 @@ describe("DashboardScreen integration", () => {
     }
 
     expect(infoContainer.content).toContain("Shopping-Beschreibung");
-    expect(toList).not.toHaveBeenCalled();
+    expect(toList).toHaveBeenCalledWith(SHOPPING_LIST_ID);
+    expect(debug).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "Dashboard click target -> index:1 item:dashboard-shopping-list|Shopping List|list:shopping-list list:shopping-list"
+      )
+    );
+  });
+
+  it("resets dashboard selection on re-enter and opens RSS on click without payload", () => {
+    const toList = vi.fn<(listId: string) => void>();
+    const { logger, debug } = createSpyLogger();
+    const screen = createDashboardScreen(
+      { toList, toDetail: vi.fn(), back: vi.fn() },
+      createDataService(dashboardItems),
+      logger
+    );
+
+    screen.onEnter();
+    screen.onInput(downEvent);
+    screen.onExit();
+    screen.onEnter();
+    screen.onInput({ type: "Click" });
+
+    expect(toList).toHaveBeenLastCalledWith(RSS_LIST_ID);
+    expect(debug).toHaveBeenCalledWith(
+      expect.stringContaining("Dashboard selection reset -> index:0 item:dashboard-rss|RSS-Feeds|list:rss")
+    );
   });
 
   it("updates description on selection-change event without opening target list", () => {
     const toList = vi.fn<(listId: string) => void>();
+    const { logger, debug } = createSpyLogger();
     const screen = createDashboardScreen(
       { toList, toDetail: vi.fn(), back: vi.fn() },
       createDataService(dashboardItems),
-      createLogger()
+      logger
     );
 
     screen.onInput(hoverByLabelShopping);
@@ -199,6 +249,11 @@ describe("DashboardScreen integration", () => {
 
     expect(infoContainer.content).toContain("Shopping-Beschreibung");
     expect(toList).not.toHaveBeenCalled();
+    expect(debug).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "Dashboard hover -> index:1 item:dashboard-shopping-list|Shopping List|list:shopping-list"
+      )
+    );
   });
 
   it("updates description on proto-style selection-change index payload", () => {
@@ -284,6 +339,17 @@ function createLogger() {
   return {
     info: () => {},
     debug: () => {},
+  };
+}
+
+function createSpyLogger() {
+  const info = vi.fn<(message: string) => void>();
+  const debug = vi.fn<(message: string) => void>();
+
+  return {
+    logger: { info, debug },
+    info,
+    debug,
   };
 }
 

@@ -24,6 +24,10 @@ export function resolveDashboardSelection(
 
   const maxIndex = Math.max(0, items.length - 1);
   let nextSelectedIndex = clamp(currentSelectedIndex, 0, maxIndex);
+  const resolvedIndex = resolveSelectionIndex(items, event, maxIndex);
+  if (resolvedIndex !== null) {
+    nextSelectedIndex = clamp(resolvedIndex, 0, maxIndex);
+  }
 
   if (event.type === "Up") {
     nextSelectedIndex = clamp(nextSelectedIndex - 1, 0, maxIndex);
@@ -36,7 +40,6 @@ export function resolveDashboardSelection(
   }
 
   if (event.type === "SelectionChange") {
-    nextSelectedIndex = resolveClickSelectedIndex(items, nextSelectedIndex, event, maxIndex);
     return { nextSelectedIndex, targetListId: null };
   }
 
@@ -44,18 +47,16 @@ export function resolveDashboardSelection(
     return { nextSelectedIndex, targetListId: null };
   }
 
-  nextSelectedIndex = resolveClickSelectedIndex(items, nextSelectedIndex, event, maxIndex);
   const targetListId = items[nextSelectedIndex]?.listId ?? null;
 
   return { nextSelectedIndex, targetListId };
 }
 
-function resolveClickSelectedIndex(
+function resolveSelectionIndex(
   items: DashboardItem[],
-  currentSelectedIndex: number,
   event: InputEvent,
   maxIndex: number
-): number {
+): number | null {
   const selectedName = readSelectedItemName(event);
   if (selectedName) {
     const normalizedSelectedName = selectedName.trim().toLowerCase();
@@ -79,13 +80,13 @@ function resolveClickSelectedIndex(
 
   const selectedIndex = readSelectedIndex(event);
   if (selectedIndex === null) {
-    return currentSelectedIndex;
+    return null;
   }
 
-  return normalizeClickIndex(selectedIndex, maxIndex);
+  return normalizeEventIndex(selectedIndex, maxIndex);
 }
 
-function normalizeClickIndex(selectedIndex: number, maxIndex: number): number {
+function normalizeEventIndex(selectedIndex: number, maxIndex: number): number {
   if (!Number.isFinite(selectedIndex)) {
     return 0;
   }
@@ -94,10 +95,12 @@ function normalizeClickIndex(selectedIndex: number, maxIndex: number): number {
     return 0;
   }
 
-  if (selectedIndex === 0) {
-    return 0;
+  // Prefer zero-based indexes when in-range.
+  if (selectedIndex <= maxIndex) {
+    return clamp(selectedIndex, 0, maxIndex);
   }
 
+  // One-based fallback only for out-of-range payloads (e.g. 2 for second item in a 2-item list).
   if (selectedIndex > maxIndex) {
     return clamp(selectedIndex - 1, 0, maxIndex);
   }
