@@ -7,6 +7,7 @@ import type { Router } from "../navigation/router";
 import { clamp } from "../utils/clamp";
 import { buildListViewModel } from "../ui/components/ListView";
 import type { ViewModel } from "../ui/render/renderPipeline";
+import { resolveDashboardSelection } from "./dashboard/resolveDashboardSelection";
 
 export function createDashboardScreen(
   router: Router,
@@ -26,21 +27,20 @@ export function createDashboardScreen(
     },
     onInput(event: InputEvent) {
       const dashboard = dataService.getDashboard();
-      const maxIndex = Math.max(0, dashboard.items.length - 1);
-
-      if (event.type === "Up" && dashboard.items.length > 0) {
-        selectedIndex = clamp(selectedIndex - 1, 0, maxIndex);
-      }
-
-      if (event.type === "Down" && dashboard.items.length > 0) {
-        selectedIndex = clamp(selectedIndex + 1, 0, maxIndex);
-      }
+      const result = resolveDashboardSelection({
+        items: dashboard.items,
+        currentSelectedIndex: selectedIndex,
+        event,
+      });
+      selectedIndex = result.nextSelectedIndex;
 
       if (event.type === "Click") {
-        const selected = dashboard.items[selectedIndex];
-        const targetListId = selected?.listId ?? RSS_LIST_ID;
-        logger.info(`Dashboard click -> list:${targetListId}`);
-        router.toList(targetListId);
+        const targetListId =
+          result.targetListId ?? (dashboard.items.length > 0 ? RSS_LIST_ID : null);
+        if (targetListId) {
+          logger.info(`Dashboard click -> list:${targetListId}`);
+          router.toList(targetListId);
+        }
       }
     },
     getViewModel(): ViewModel {

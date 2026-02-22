@@ -6,6 +6,7 @@ import type { Router } from "../../navigation/router";
 import { clamp } from "../../utils/clamp";
 import { buildListViewModel } from "../../ui/components/ListView";
 import type { ViewModel } from "../../ui/render/renderPipeline";
+import { readSelectedIndex } from "../shared/readSelectedIndex";
 
 const STATUS_ITEM_ID = "__status__";
 
@@ -100,34 +101,6 @@ export function createRssFeedListScreen(
       return buildListViewModel(visible, boundedIndex);
     },
   };
-}
-
-function readSelectedIndex(event: InputEvent): number | null {
-  const raw = event.raw;
-  if (!raw || typeof raw !== "object") {
-    return null;
-  }
-
-  const record = raw as Record<string, unknown>;
-  const listEvent = record.listEvent;
-  if (listEvent && typeof listEvent === "object") {
-    const listRecord = listEvent as Record<string, unknown>;
-    const index = listRecord.currentSelectItemIndex;
-    if (typeof index === "number" && Number.isFinite(index)) {
-      return index;
-    }
-  }
-
-  const jsonData = record.jsonData;
-  if (jsonData && typeof jsonData === "object") {
-    const jsonRecord = jsonData as Record<string, unknown>;
-    const index = jsonRecord.currentSelectItemIndex;
-    if (typeof index === "number" && Number.isFinite(index)) {
-      return index;
-    }
-  }
-
-  return null;
 }
 
 function withStatusState(list: ListData, isLoading: boolean, loadError: string | null): ListData {
