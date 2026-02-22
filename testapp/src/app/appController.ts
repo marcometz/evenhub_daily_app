@@ -5,6 +5,7 @@ import { ScreenStack } from "../navigation/stack";
 import { createInputDispatcher } from "../input/inputHandlers";
 import { RssAppDataService } from "../services/data/RssAppDataService";
 import { RssConfigService } from "../services/data/RssConfigService";
+import { ShoppingConfigService } from "../services/data/ShoppingConfigService";
 import { EvenHubStorageService } from "../services/storage/EvenHubStorageService";
 import { createDashboardScreen } from "../screens/DashboardScreen";
 import { RenderPipeline } from "../ui/render/renderPipeline";
@@ -20,14 +21,16 @@ export class AppController {
 
     const storageService = new EvenHubStorageService();
     const rssConfigService = new RssConfigService(storageService);
-    const dataService = new RssAppDataService(rssConfigService);
+    const shoppingConfigService = new ShoppingConfigService(storageService);
+    const dataService = new RssAppDataService(rssConfigService, shoppingConfigService);
 
     this.bridge = await initBridge();
     try {
       await rssConfigService.ensureSeededDefaults();
+      await shoppingConfigService.ensureSeededDefaults();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.logger.info(`RSS config seed failed: ${message}`);
+      this.logger.info(`Config seed failed: ${message}`);
     }
 
     const renderer = new RenderPipeline(this.bridge, this.logger);

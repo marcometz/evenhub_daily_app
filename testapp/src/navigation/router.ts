@@ -27,7 +27,7 @@ export function createRouter(stack: ScreenStack, dataService: DataService, logge
       }
 
       if (listId === SHOPPING_LIST_ID) {
-        const screen = createShoppingListScreen(logger, router);
+        const screen = createShoppingListScreen(listId, dataService, logger, router, requestRender);
         stack.push(screen);
         return;
       }

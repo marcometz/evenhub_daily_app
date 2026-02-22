@@ -1,14 +1,21 @@
 import type { DashboardData, DataService, DetailData, ListData } from "./DataService";
 import { parseRssFeed, type ParsedRssItem } from "./rssParser";
 import { RssConfigService } from "./RssConfigService";
+import { ShoppingConfigService } from "./ShoppingConfigService";
+import type { EditableShoppingItem } from "./shoppingConfig";
 
 export const RSS_LIST_ID = "rss";
 export const SHOPPING_LIST_ID = "shopping-list";
+export const SHOPPING_DIVIDER_ITEM_ID = "__shopping-divider__";
 const RSS_PROXY_PATH = "/rss-proxy";
 
 export class RssAppDataService implements DataService {
   private rssItems: ParsedRssItem[] = [];
-  constructor(private readonly rssConfigService: RssConfigService) {}
+  private shoppingItems: EditableShoppingItem[] = [];
+  constructor(
+    private readonly rssConfigService: RssConfigService,
+    private readonly shoppingConfigService: ShoppingConfigService
+  ) {}
 
   private readonly dashboard: DashboardData = {
     title: "Dashboard",
@@ -19,6 +26,11 @@ export class RssAppDataService implements DataService {
   };
 
   async refreshList(listId: string): Promise<void> {
+    if (listId === SHOPPING_LIST_ID) {
+      this.shoppingItems = await this.shoppingConfigService.loadEditableItems();
+      return;
+    }
+
     if (listId !== RSS_LIST_ID) {
       return;
     }
@@ -68,6 +80,31 @@ export class RssAppDataService implements DataService {
   }
 
   getList(listId: string): ListData {
+    if (listId === SHOPPING_LIST_ID) {
+      const sorted = sortShoppingItems(this.shoppingItems);
+      const openItems = sorted.filter((item) => !item.done);
+      const doneItems = sorted.filter((item) => item.done);
+      const hasDivider = openItems.length > 0 && doneItems.length > 0;
+
+      return {
+        id: SHOPPING_LIST_ID,
+        title: "Shopping List",
+        items: [
+          ...openItems.map((item) => ({
+            id: item.id,
+            label: `[ ] ${item.title}`,
+          })),
+          ...(hasDivider
+            ? [{ id: SHOPPING_DIVIDER_ITEM_ID, label: "-------- Erledigt --------" }]
+            : []),
+          ...doneItems.map((item) => ({
+            id: item.id,
+            label: `[x] ${item.title}`,
+          })),
+        ],
+      };
+    }
+
     if (listId !== RSS_LIST_ID) {
       return {
         id: listId,
@@ -84,6 +121,23 @@ export class RssAppDataService implements DataService {
         label: `${item.title} - ${item.snippet}`,
       })),
     };
+  }
+
+  async toggleShoppingItem(itemId: string): Promise<void> {
+    const index = this.shoppingItems.findIndex((item) => item.id === itemId);
+    if (index < 0) {
+      return;
+    }
+
+    const nextItems = this.shoppingItems.map((item) => ({ ...item }));
+    const target = nextItems[index];
+    if (!target) {
+      return;
+    }
+
+    target.done = !target.done;
+    await this.shoppingConfigService.saveEditableItems(nextItems);
+    this.shoppingItems = nextItems;
   }
 
   getDetail(itemId: string): DetailData {
@@ -121,6 +175,22 @@ export class RssAppDataService implements DataService {
 
     return target ? target.id : null;
   }
+}
+
+function sortShoppingItems(items: EditableShoppingItem[]): EditableShoppingItem[] {
+  return [...items].sort((a, b) => {
+    const byState = Number(a.done) - Number(b.done);
+    if (byState !== 0) {
+      return byState;
+    }
+
+    const byPosition = a.position - b.position;
+    if (byPosition !== 0) {
+      return byPosition;
+    }
+
+    return a.title.localeCompare(b.title);
+  });
 }
 
 function compareByPublishedDateDesc(a: ParsedRssItem, b: ParsedRssItem): number {

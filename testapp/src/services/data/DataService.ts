@@ -34,6 +34,7 @@ export interface DataService {
   getDashboard(): DashboardData;
   refreshList(listId: string): Promise<void>;
   getList(listId: string): ListData;
+  toggleShoppingItem(itemId: string): Promise<void>;
   getDetail(itemId: string): DetailData;
   getAdjacentItemId(itemId: string, direction: "up" | "down"): string | null;
 }

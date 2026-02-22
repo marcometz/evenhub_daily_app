@@ -1,7 +1,9 @@
 import "./style.css";
 import { AppController } from "./app/appController";
 import { RssConfigService } from "./services/data/RssConfigService";
+import { ShoppingConfigService } from "./services/data/ShoppingConfigService";
 import type { EditableRssFeed } from "./services/data/rssConfig";
+import type { EditableShoppingItem } from "./services/data/shoppingConfig";
 import { EvenHubStorageService } from "./services/storage/EvenHubStorageService";
 
 interface FeedDraft {
@@ -15,9 +17,25 @@ interface FeedFieldErrors {
   url?: string;
 }
 
-interface ValidationResult {
+interface FeedValidationResult {
   feeds: EditableRssFeed[];
   errors: FeedFieldErrors[];
+  formError: string | null;
+}
+
+interface ShoppingDraft {
+  id: string;
+  title: string;
+  done: boolean;
+}
+
+interface ShoppingFieldErrors {
+  title?: string;
+}
+
+interface ShoppingValidationResult {
+  items: EditableShoppingItem[];
+  errors: ShoppingFieldErrors[];
   formError: string | null;
 }
 
@@ -25,32 +43,60 @@ const app = requireElement<HTMLDivElement>("#app");
 app.innerHTML = `
   <div class="card">
     <h1>EvenHub TestApp</h1>
-    <div class="badge" id="config-status">storage: pending</div>
-    <p>RSS-Feeds fuer die Glaeser konfigurieren. Aenderungen greifen beim naechsten Listen-Refresh.</p>
+    <p>RSS- und Shopping-Daten fuer die Glaeser konfigurieren.</p>
   </div>
   <div class="card">
-    <h1>RSS Config</h1>
-    <p id="config-feedback" class="feedback"></p>
+    <div class="card-head">
+      <h1>RSS Config</h1>
+      <div class="badge" id="rss-config-status">storage: pending</div>
+    </div>
+    <p id="rss-config-feedback" class="feedback"></p>
     <div id="feed-list" class="feed-list"></div>
     <div class="actions">
       <button id="add-feed" type="button">Feed hinzufuegen</button>
       <button id="save-feeds" type="button">Speichern</button>
     </div>
   </div>
+  <div class="card">
+    <div class="card-head">
+      <h1>Shopping Config</h1>
+      <div class="badge" id="shopping-config-status">storage: pending</div>
+    </div>
+    <p id="shopping-config-feedback" class="feedback"></p>
+    <div id="shopping-list" class="feed-list"></div>
+    <div class="actions">
+      <button id="add-shopping-item" type="button">Todo hinzufuegen</button>
+      <button id="save-shopping-items" type="button">Speichern</button>
+      <button id="load-shopping-external" type="button" disabled>
+        Offene Todos aus externer Quelle laden
+      </button>
+    </div>
+  </div>
 `;
 
-const statusEl = requireElement<HTMLElement>("#config-status");
-const feedbackEl = requireElement<HTMLElement>("#config-feedback");
+const rssStatusEl = requireElement<HTMLElement>("#rss-config-status");
+const rssFeedbackEl = requireElement<HTMLElement>("#rss-config-feedback");
 const feedListEl = requireElement<HTMLDivElement>("#feed-list");
 const addFeedButton = requireElement<HTMLButtonElement>("#add-feed");
-const saveButton = requireElement<HTMLButtonElement>("#save-feeds");
+const saveFeedsButton = requireElement<HTMLButtonElement>("#save-feeds");
+
+const shoppingStatusEl = requireElement<HTMLElement>("#shopping-config-status");
+const shoppingFeedbackEl = requireElement<HTMLElement>("#shopping-config-feedback");
+const shoppingListEl = requireElement<HTMLDivElement>("#shopping-list");
+const addShoppingItemButton = requireElement<HTMLButtonElement>("#add-shopping-item");
+const saveShoppingItemsButton = requireElement<HTMLButtonElement>("#save-shopping-items");
 
 const storageService = new EvenHubStorageService();
 const rssConfigService = new RssConfigService(storageService);
+const shoppingConfigService = new ShoppingConfigService(storageService);
 
 let feeds: FeedDraft[] = [];
-let fieldErrors: FeedFieldErrors[] = [];
-let isBusy = false;
+let feedErrors: FeedFieldErrors[] = [];
+let isRssBusy = false;
+
+let shoppingDrafts: ShoppingDraft[] = [];
+let shoppingErrors: ShoppingFieldErrors[] = [];
+let isShoppingBusy = false;
 
 const controller = new AppController();
 void controller.start().catch((error) => {
@@ -74,8 +120,8 @@ feedListEl.addEventListener("input", (event) => {
   }
 
   feeds[index][field] = target.value;
-  if (fieldErrors[index]?.[field]) {
-    fieldErrors[index][field] = undefined;
+  if (feedErrors[index]?.[field]) {
+    feedErrors[index][field] = undefined;
     renderFeeds();
   }
 });
@@ -93,68 +139,197 @@ feedListEl.addEventListener("click", (event) => {
   }
 
   feeds.splice(index, 1);
-  fieldErrors.splice(index, 1);
-  clearFeedback();
+  feedErrors.splice(index, 1);
+  clearSectionFeedback(rssFeedbackEl);
   renderFeeds();
 });
 
 addFeedButton.addEventListener("click", () => {
   feeds.push(createEmptyFeed());
-  fieldErrors.push({});
-  clearFeedback();
+  feedErrors.push({});
+  clearSectionFeedback(rssFeedbackEl);
   renderFeeds();
 });
 
-saveButton.addEventListener("click", async () => {
-  clearFeedback();
+saveFeedsButton.addEventListener("click", async () => {
+  clearSectionFeedback(rssFeedbackEl);
   const validation = validateFeeds(feeds);
-  fieldErrors = validation.errors;
+  feedErrors = validation.errors;
   renderFeeds();
 
   if (validation.formError) {
-    setFeedback(validation.formError, "error");
+    setSectionFeedback(rssFeedbackEl, validation.formError, "error");
     return;
   }
 
-  setBusy(true);
+  setRssBusy(true);
   try {
     await rssConfigService.saveEditableFeeds(validation.feeds);
     const persisted = await rssConfigService.loadEditableFeeds();
     feeds = persisted.map((feed) => ({ ...feed }));
-    fieldErrors = feeds.map(() => ({}));
-    setStatus("storage: saved", "ok");
-    setFeedback("RSS-Konfiguration gespeichert.", "ok");
+    feedErrors = feeds.map(() => ({}));
+    setBadgeStatus(rssStatusEl, "storage: saved", "ok");
+    setSectionFeedback(rssFeedbackEl, "RSS-Konfiguration gespeichert.", "ok");
     renderFeeds();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    setStatus("storage: error", "error");
-    setFeedback(`Speichern fehlgeschlagen: ${message}`, "error");
+    setBadgeStatus(rssStatusEl, "storage: error", "error");
+    setSectionFeedback(rssFeedbackEl, `Speichern fehlgeschlagen: ${message}`, "error");
   } finally {
-    setBusy(false);
+    setRssBusy(false);
   }
 });
 
-void loadConfig();
+shoppingListEl.addEventListener("input", (event) => {
+  const target = event.target as HTMLInputElement | null;
+  if (!target) {
+    return;
+  }
 
-async function loadConfig(): Promise<void> {
-  setBusy(true);
-  setStatus("storage: loading", "pending");
-  clearFeedback();
+  if (target.dataset.field !== "title") {
+    return;
+  }
+
+  const index = readIndex(target.dataset.index);
+  if (index === null || !shoppingDrafts[index]) {
+    return;
+  }
+
+  shoppingDrafts[index].title = target.value;
+  if (shoppingErrors[index]?.title) {
+    shoppingErrors[index].title = undefined;
+    renderShoppingItems();
+  }
+});
+
+shoppingListEl.addEventListener("change", (event) => {
+  const target = event.target as HTMLSelectElement | null;
+  if (!target) {
+    return;
+  }
+
+  if (target.dataset.field !== "done") {
+    return;
+  }
+
+  const index = readIndex(target.dataset.index);
+  if (index === null || !shoppingDrafts[index]) {
+    return;
+  }
+
+  shoppingDrafts[index].done = target.value === "done";
+});
+
+shoppingListEl.addEventListener("click", (event) => {
+  const target = event.target as HTMLElement | null;
+  const button = target?.closest<HTMLButtonElement>("button[data-action='delete-shopping-item']");
+  if (!button) {
+    return;
+  }
+
+  const index = readIndex(button.dataset.index);
+  if (index === null || !shoppingDrafts[index]) {
+    return;
+  }
+
+  shoppingDrafts.splice(index, 1);
+  shoppingErrors.splice(index, 1);
+  clearSectionFeedback(shoppingFeedbackEl);
+  renderShoppingItems();
+});
+
+addShoppingItemButton.addEventListener("click", () => {
+  shoppingDrafts.push(createEmptyShoppingItem());
+  shoppingErrors.push({});
+  clearSectionFeedback(shoppingFeedbackEl);
+  renderShoppingItems();
+});
+
+saveShoppingItemsButton.addEventListener("click", async () => {
+  clearSectionFeedback(shoppingFeedbackEl);
+  const validation = validateShoppingItems(shoppingDrafts);
+  shoppingErrors = validation.errors;
+  renderShoppingItems();
+
+  if (validation.formError) {
+    setSectionFeedback(shoppingFeedbackEl, validation.formError, "error");
+    return;
+  }
+
+  setShoppingBusy(true);
+  try {
+    await shoppingConfigService.saveEditableItems(validation.items);
+    const persisted = await shoppingConfigService.loadEditableItems();
+    shoppingDrafts = persisted.map((item) => ({
+      id: item.id,
+      title: item.title,
+      done: item.done,
+    }));
+    shoppingErrors = shoppingDrafts.map(() => ({}));
+    setBadgeStatus(shoppingStatusEl, "storage: saved", "ok");
+    setSectionFeedback(shoppingFeedbackEl, "Shopping-Konfiguration gespeichert.", "ok");
+    renderShoppingItems();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    setBadgeStatus(shoppingStatusEl, "storage: error", "error");
+    setSectionFeedback(shoppingFeedbackEl, `Speichern fehlgeschlagen: ${message}`, "error");
+  } finally {
+    setShoppingBusy(false);
+  }
+});
+
+void loadRssConfig();
+void loadShoppingConfig();
+
+async function loadRssConfig(): Promise<void> {
+  setRssBusy(true);
+  setBadgeStatus(rssStatusEl, "storage: loading", "pending");
+  clearSectionFeedback(rssFeedbackEl);
 
   try {
     const storedFeeds = await rssConfigService.loadEditableFeeds();
     feeds = storedFeeds.map((feed) => ({ ...feed }));
-    fieldErrors = feeds.map(() => ({}));
-    setStatus("storage: connected", "ok");
+    feedErrors = feeds.map(() => ({}));
+    setBadgeStatus(rssStatusEl, "storage: connected", "ok");
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     feeds = [createEmptyFeed()];
-    fieldErrors = [{}];
-    setStatus("storage: error", "error");
-    setFeedback(`Konfiguration konnte nicht geladen werden: ${message}`, "error");
+    feedErrors = [{}];
+    setBadgeStatus(rssStatusEl, "storage: error", "error");
+    setSectionFeedback(rssFeedbackEl, `Konfiguration konnte nicht geladen werden: ${message}`, "error");
   } finally {
-    setBusy(false);
+    setRssBusy(false);
     renderFeeds();
+  }
+}
+
+async function loadShoppingConfig(): Promise<void> {
+  setShoppingBusy(true);
+  setBadgeStatus(shoppingStatusEl, "storage: loading", "pending");
+  clearSectionFeedback(shoppingFeedbackEl);
+
+  try {
+    const storedItems = await shoppingConfigService.loadEditableItems();
+    shoppingDrafts = storedItems.map((item) => ({
+      id: item.id,
+      title: item.title,
+      done: item.done,
+    }));
+    shoppingErrors = shoppingDrafts.map(() => ({}));
+    setBadgeStatus(shoppingStatusEl, "storage: connected", "ok");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    shoppingDrafts = [];
+    shoppingErrors = [];
+    setBadgeStatus(shoppingStatusEl, "storage: error", "error");
+    setSectionFeedback(
+      shoppingFeedbackEl,
+      `Shopping-Konfiguration konnte nicht geladen werden: ${message}`,
+      "error"
+    );
+  } finally {
+    setShoppingBusy(false);
+    renderShoppingItems();
   }
 }
 
@@ -162,20 +337,20 @@ function renderFeeds(): void {
   const activeFeeds = feeds.length > 0 ? feeds : [createEmptyFeed()];
   if (feeds.length === 0) {
     feeds = activeFeeds;
-    fieldErrors = [{}];
+    feedErrors = [{}];
   }
 
   feedListEl.innerHTML = "";
   for (let index = 0; index < feeds.length; index += 1) {
     const feed = feeds[index];
-    const errors = fieldErrors[index] ?? {};
+    const errors = feedErrors[index] ?? {};
     const row = document.createElement("div");
     row.className = "feed-row";
     row.innerHTML = `
       <div class="feed-row-head">
         <strong>Feed ${index + 1}</strong>
         <button type="button" class="danger" data-action="delete-feed" data-index="${index}" ${
-          isBusy ? "disabled" : ""
+          isRssBusy ? "disabled" : ""
         }>
           Loeschen
         </button>
@@ -188,7 +363,7 @@ function renderFeeds(): void {
         data-field="title"
         value="${escapeHtml(feed.title)}"
         placeholder="z. B. Tagesschau"
-        ${isBusy ? "disabled" : ""}
+        ${isRssBusy ? "disabled" : ""}
       />
       <p class="validation-error">${errors.title ?? ""}</p>
       <label class="field-label" for="feed-url-${index}">RSS URL</label>
@@ -199,7 +374,7 @@ function renderFeeds(): void {
         data-field="url"
         value="${escapeHtml(feed.url)}"
         placeholder="https://example.com/rss.xml"
-        ${isBusy ? "disabled" : ""}
+        ${isRssBusy ? "disabled" : ""}
       />
       <p class="validation-error">${errors.url ?? ""}</p>
     `;
@@ -207,7 +382,58 @@ function renderFeeds(): void {
   }
 }
 
-function validateFeeds(drafts: FeedDraft[]): ValidationResult {
+function renderShoppingItems(): void {
+  shoppingListEl.innerHTML = "";
+
+  if (shoppingDrafts.length === 0) {
+    const hint = document.createElement("p");
+    hint.className = "empty-state";
+    hint.textContent = "Noch keine Shopping-Eintraege konfiguriert.";
+    shoppingListEl.appendChild(hint);
+    return;
+  }
+
+  for (let index = 0; index < shoppingDrafts.length; index += 1) {
+    const item = shoppingDrafts[index];
+    const errors = shoppingErrors[index] ?? {};
+    const row = document.createElement("div");
+    row.className = "feed-row";
+    row.innerHTML = `
+      <div class="feed-row-head">
+        <strong>Todo ${index + 1}</strong>
+        <button type="button" class="danger" data-action="delete-shopping-item" data-index="${index}" ${
+          isShoppingBusy ? "disabled" : ""
+        }>
+          Loeschen
+        </button>
+      </div>
+      <label class="field-label" for="shopping-title-${index}">Titel</label>
+      <input
+        id="shopping-title-${index}"
+        type="text"
+        data-index="${index}"
+        data-field="title"
+        value="${escapeHtml(item.title)}"
+        placeholder="z. B. Milch"
+        ${isShoppingBusy ? "disabled" : ""}
+      />
+      <p class="validation-error">${errors.title ?? ""}</p>
+      <label class="field-label" for="shopping-done-${index}">Status</label>
+      <select
+        id="shopping-done-${index}"
+        data-index="${index}"
+        data-field="done"
+        ${isShoppingBusy ? "disabled" : ""}
+      >
+        <option value="open" ${item.done ? "" : "selected"}>offen</option>
+        <option value="done" ${item.done ? "selected" : ""}>erledigt</option>
+      </select>
+    `;
+    shoppingListEl.appendChild(row);
+  }
+}
+
+function validateFeeds(drafts: FeedDraft[]): FeedValidationResult {
   const nextErrors: FeedFieldErrors[] = drafts.map(() => ({}));
   const validFeeds: EditableRssFeed[] = [];
 
@@ -259,32 +485,78 @@ function validateFeeds(drafts: FeedDraft[]): ValidationResult {
   };
 }
 
-function setStatus(text: string, tone: "pending" | "ok" | "error"): void {
-  statusEl.textContent = text;
-  statusEl.classList.remove("badge-pending", "badge-ok", "badge-error");
-  statusEl.classList.add(`badge-${tone}`);
+function validateShoppingItems(drafts: ShoppingDraft[]): ShoppingValidationResult {
+  const nextErrors: ShoppingFieldErrors[] = drafts.map(() => ({}));
+  const validItems: EditableShoppingItem[] = [];
+
+  for (let index = 0; index < drafts.length; index += 1) {
+    const draft = drafts[index];
+    const title = draft.title.trim();
+    if (!title) {
+      nextErrors[index].title = "Titel ist erforderlich.";
+      continue;
+    }
+
+    validItems.push({
+      id: draft.id.trim(),
+      title,
+      done: draft.done,
+      position: index,
+    });
+  }
+
+  if (nextErrors.some((entry) => Boolean(entry.title))) {
+    return {
+      items: validItems,
+      errors: nextErrors,
+      formError: "Bitte markierte Eingaben korrigieren.",
+    };
+  }
+
+  return {
+    items: validItems,
+    errors: nextErrors,
+    formError: null,
+  };
 }
 
-function setFeedback(text: string, tone: "ok" | "error"): void {
-  feedbackEl.textContent = text;
-  feedbackEl.classList.remove("feedback-ok", "feedback-error");
-  feedbackEl.classList.add(tone === "ok" ? "feedback-ok" : "feedback-error");
+function setBadgeStatus(element: HTMLElement, text: string, tone: "pending" | "ok" | "error"): void {
+  element.textContent = text;
+  element.classList.remove("badge-pending", "badge-ok", "badge-error");
+  element.classList.add(`badge-${tone}`);
 }
 
-function clearFeedback(): void {
-  feedbackEl.textContent = "";
-  feedbackEl.classList.remove("feedback-ok", "feedback-error");
+function setSectionFeedback(element: HTMLElement, text: string, tone: "ok" | "error"): void {
+  element.textContent = text;
+  element.classList.remove("feedback-ok", "feedback-error");
+  element.classList.add(tone === "ok" ? "feedback-ok" : "feedback-error");
 }
 
-function setBusy(nextBusy: boolean): void {
-  isBusy = nextBusy;
+function clearSectionFeedback(element: HTMLElement): void {
+  element.textContent = "";
+  element.classList.remove("feedback-ok", "feedback-error");
+}
+
+function setRssBusy(nextBusy: boolean): void {
+  isRssBusy = nextBusy;
   addFeedButton.disabled = nextBusy;
-  saveButton.disabled = nextBusy;
+  saveFeedsButton.disabled = nextBusy;
   renderFeeds();
+}
+
+function setShoppingBusy(nextBusy: boolean): void {
+  isShoppingBusy = nextBusy;
+  addShoppingItemButton.disabled = nextBusy;
+  saveShoppingItemsButton.disabled = nextBusy;
+  renderShoppingItems();
 }
 
 function createEmptyFeed(): FeedDraft {
   return { id: "", title: "", url: "" };
+}
+
+function createEmptyShoppingItem(): ShoppingDraft {
+  return { id: "", title: "", done: false };
 }
 
 function readIndex(raw: string | undefined): number | null {

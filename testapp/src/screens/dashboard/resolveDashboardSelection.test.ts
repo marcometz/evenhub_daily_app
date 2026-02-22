@@ -129,6 +129,7 @@ function createDataService(items: DashboardItem[]): DataService {
         items: [],
       };
     },
+    async toggleShoppingItem(): Promise<void> {},
     getDetail(): DetailData {
       return {
         id: "unused",
