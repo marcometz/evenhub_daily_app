@@ -25,6 +25,10 @@ The canonical registry location is `AGENTS.md` at the repository root.
 - If multiple skills match, use the smallest set that fully covers the task and state the execution order briefly.
 - Proceed without skills only when no matching skill exists.
 - For EvenHub UI rendering/display tasks, `ui_agent` must be used.
+- Mandatory test policy for all implementation work:
+  - Always create or update automated tests for every changed method/function and every changed feature flow.
+  - Minimum coverage per feature change: happy path + relevant edge/error cases + regression case for the changed behavior.
+  - If tests cannot be executed (tooling/environment limits), explicitly document what was not tested and why.
 - Sequencing note:
   - If SDK details are needed, apply `ui_agent -> even_agent`.
   - If architecture compliance is needed for code changes, apply `ui_agent -> even_agent -> architecture`.

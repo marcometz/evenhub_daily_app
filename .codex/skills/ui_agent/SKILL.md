@@ -134,3 +134,13 @@ Common pitfalls
 - Treating `@jappyjan/even-realities-ui` as a replacement for SDK container APIs.
 - Missing global stylesheet import or importing it multiple times.
 - For hybrid screens, mixing Browser/WebView recommendations with device-rendered container output without clear separation.
+
+Testing requirements
+- Every UI-related implementation change must include automated tests for:
+  - each changed/new method that influences UI behavior
+  - each changed/new feature flow (navigation, rendering state, and input handling)
+- Minimum scenario set per changed feature:
+  - happy path
+  - edge/error handling
+  - regression case for the exact changed behavior
+- If some UI behavior cannot be fully automated (device-only limits), document the manual checks and keep the decision logic under automated test coverage.

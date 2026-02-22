@@ -23,6 +23,9 @@ Rules to enforce
 - Screens return ViewModels; they do not call the bridge directly.
 - Input mapping happens only in input/evenHubEventMapper.ts.
 - Navigation changes happen only via navigation/router.ts and stack.
+- Test-first requirement for code changes:
+  - Every changed/new method must have automated test coverage (new test or updated test).
+  - Every changed/new feature flow must have automated scenario coverage (happy path + edge/error + regression).
 
 Review checklist
 - New files placed in correct layer folder.
@@ -31,6 +34,8 @@ Review checklist
 - ViewModel composition stays under ui/components.
 - Layout rules: max 4 containers, exactly 1 event capture.
 - DoubleClick maps to Back everywhere.
+- Tests added/updated for changed methods and changed features.
+- Build and test command results are reported; if tests were blocked, missing coverage is listed explicitly.
 
 Common violations
 - Direct SDK calls inside screens or components.

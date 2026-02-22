@@ -49,3 +49,12 @@ Guidance patterns
 - If display is black, confirm createStartUpPageContainer() payload matches SDK field names.
 - Ensure only one isEventCapture=1 in each rendered page.
 - If navigation required, use a stack and map DoubleClick to back().
+
+Testing requirements
+- For every EvenHub-related code change, add/update automated tests for:
+  - each changed method/function
+  - each changed feature flow (input -> navigation/render behavior)
+- For event mapping/navigation fixes, add deterministic fixture-based tests that cover:
+  - expected payload variants
+  - at least one regression case reproducing the bug
+- If simulator/device-only validation is required, still provide automated unit/integration tests for core logic and document any remaining manual-only gaps.
