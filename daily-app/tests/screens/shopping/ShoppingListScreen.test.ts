@@ -83,7 +83,7 @@ describe("ShoppingListScreen", () => {
     screen.onInput({ type: "Click" });
     await flushAsync();
 
-    expect(dataService.toggleShoppingItem).not.toHaveBeenCalled();
+    expect(dataService.toggleShoppingItem).toHaveBeenCalledWith("milk");
   });
 
   it("routes back on double click", () => {
@@ -106,7 +106,7 @@ describe("ShoppingListScreen", () => {
     expect(router.back).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps selection on toggled item after list reorder", async () => {
+  it("moves selection to the next interactive row after list reorder", async () => {
     let list: ListData = {
       id: SHOPPING_LIST_ID,
       title: "Shopping List",
@@ -146,7 +146,409 @@ describe("ShoppingListScreen", () => {
     screen.onInput({ type: "Click" });
     await flushAsync();
 
-    expect(readSelectedIndex(screen.getViewModel())).toBe(2);
+    expect(readSelectedIndex(screen.getViewModel())).toBe(0);
+  });
+
+  it("toggles currently selected item on click without payload/type", async () => {
+    const dataService = createDataService({
+      id: SHOPPING_LIST_ID,
+      title: "Shopping List",
+      items: [
+        { id: "milk", label: "[ ] Milch" },
+        { id: "bread", label: "[ ] Brot" },
+      ],
+    });
+    const screen = createShoppingListScreen(
+      SHOPPING_LIST_ID,
+      dataService,
+      createLogger(),
+      createRouter(),
+      vi.fn()
+    );
+    screen.onEnter();
+    await flushAsync();
+
+    screen.onInput({ type: "Click", raw: { jsonData: { containerID: 2, containerName: "list-1" } } });
+    await flushAsync();
+
+    expect(dataService.toggleShoppingItem).toHaveBeenCalledWith("milk");
+    expect(readSelectedIndex(screen.getViewModel())).toBe(0);
+  });
+
+  it("never keeps divider as selected target when payload index points divider", async () => {
+    const dataService = createDataService({
+      id: SHOPPING_LIST_ID,
+      title: "Shopping List",
+      items: [
+        { id: "bread", label: "[ ] B" },
+        { id: SHOPPING_DIVIDER_ITEM_ID, label: "-------- Erledigt --------" },
+        { id: "a", label: "[x] A" },
+      ],
+    });
+    const screen = createShoppingListScreen(
+      SHOPPING_LIST_ID,
+      dataService,
+      createLogger(),
+      createRouter(),
+      vi.fn()
+    );
+    screen.onEnter();
+    await flushAsync();
+
+    screen.onInput({
+      type: "Click",
+      raw: { jsonData: { containerID: 2, containerName: "list-1", currentSelectItemIndex: 1 } },
+    });
+    await flushAsync();
+
+    expect(dataService.toggleShoppingItem).toHaveBeenCalledWith("bread");
+    expect(readSelectedIndex(screen.getViewModel())).toBe(0);
+  });
+
+  it("toggles on explicit click event after selection changed", async () => {
+    const dataService = createDataService({
+      id: SHOPPING_LIST_ID,
+      title: "Shopping List",
+      items: [
+        { id: "milk", label: "[ ] Milch" },
+        { id: "bread", label: "[ ] Brot" },
+      ],
+    });
+    const screen = createShoppingListScreen(
+      SHOPPING_LIST_ID,
+      dataService,
+      createLogger(),
+      createRouter(),
+      vi.fn()
+    );
+    screen.onEnter();
+    await flushAsync();
+
+    screen.onInput({
+      type: "Click",
+      raw: { listEvent: { currentSelectItemIndex: 1, eventType: 0 } },
+    });
+    await flushAsync();
+
+    expect(dataService.toggleShoppingItem).toHaveBeenCalledWith("bread");
+  });
+
+  it("toggles currently hovered first item when host sends item-name payload", async () => {
+    const dataService = createDataService({
+      id: SHOPPING_LIST_ID,
+      title: "Shopping List",
+      items: [
+        { id: "milk", label: "[ ] Milch" },
+        { id: "bread", label: "[ ] Brot" },
+      ],
+    });
+    const screen = createShoppingListScreen(
+      SHOPPING_LIST_ID,
+      dataService,
+      createLogger(),
+      createRouter(),
+      vi.fn()
+    );
+    screen.onEnter();
+    await flushAsync();
+
+    // Move local selection away from first entry to prove payload-based resolution.
+    screen.onInput({ type: "Down" });
+    expect(readSelectedIndex(screen.getViewModel())).toBe(1);
+
+    screen.onInput({
+      type: "Click",
+      raw: {
+        listEvent: {
+          currentSelectItemName: "item1",
+          currentSelectItemIndex: 1,
+          eventType: 0,
+        },
+      },
+    });
+    await flushAsync();
+
+    expect(dataService.toggleShoppingItem).toHaveBeenCalledWith("milk");
+  });
+
+  it("toggles second item when clicking B with two todos and index=1 payload", async () => {
+    const dataService = createDataService({
+      id: SHOPPING_LIST_ID,
+      title: "Shopping List",
+      items: [
+        { id: "milk", label: "[ ] Milch" },
+        { id: "bread", label: "[ ] Brot" },
+      ],
+    });
+    const screen = createShoppingListScreen(
+      SHOPPING_LIST_ID,
+      dataService,
+      createLogger(),
+      createRouter(),
+      vi.fn()
+    );
+    screen.onEnter();
+    await flushAsync();
+
+    screen.onInput({
+      type: "Click",
+      raw: { listEvent: { currentSelectItemIndex: 1, eventType: 0 } },
+    });
+    await flushAsync();
+
+    expect(dataService.toggleShoppingItem).toHaveBeenCalledWith("bread");
+  });
+
+  it("toggles second item with index payload even when eventType is missing", async () => {
+    const dataService = createDataService({
+      id: SHOPPING_LIST_ID,
+      title: "Shopping List",
+      items: [
+        { id: "milk", label: "[ ] Milch" },
+        { id: "bread", label: "[ ] Brot" },
+      ],
+    });
+    const screen = createShoppingListScreen(
+      SHOPPING_LIST_ID,
+      dataService,
+      createLogger(),
+      createRouter(),
+      vi.fn()
+    );
+    screen.onEnter();
+    await flushAsync();
+
+    screen.onInput({
+      type: "Click",
+      raw: { jsonData: { containerID: 2, containerName: "list-1", currentSelectItemIndex: 1 } },
+    });
+    await flushAsync();
+
+    expect(dataService.toggleShoppingItem).toHaveBeenCalledWith("bread");
+  });
+
+  it("toggles A after toggling B when next click has no payload", async () => {
+    let list: ListData = {
+      id: SHOPPING_LIST_ID,
+      title: "Shopping List",
+      items: [
+        { id: "a", label: "[ ] A" },
+        { id: "b", label: "[ ] B" },
+      ],
+    };
+
+    const dataService = createDataService(list);
+    dataService.toggleShoppingItem.mockImplementation(async (itemId: string) => {
+      if (itemId === "b") {
+        list = {
+          id: SHOPPING_LIST_ID,
+          title: "Shopping List",
+          items: [
+            { id: "a", label: "[ ] A" },
+            { id: SHOPPING_DIVIDER_ITEM_ID, label: "-------- Erledigt --------" },
+            { id: "b", label: "[x] B" },
+          ],
+        };
+        dataService.getList.mockImplementation(() => list);
+        return;
+      }
+
+      if (itemId === "a") {
+        list = {
+          id: SHOPPING_LIST_ID,
+          title: "Shopping List",
+          items: [
+            { id: SHOPPING_DIVIDER_ITEM_ID, label: "-------- Erledigt --------" },
+            { id: "a", label: "[x] A" },
+            { id: "b", label: "[x] B" },
+          ],
+        };
+        dataService.getList.mockImplementation(() => list);
+      }
+    });
+
+    const screen = createShoppingListScreen(
+      SHOPPING_LIST_ID,
+      dataService,
+      createLogger(),
+      createRouter(),
+      vi.fn()
+    );
+    screen.onEnter();
+    await flushAsync();
+
+    screen.onInput({
+      type: "Click",
+      raw: { jsonData: { containerID: 2, containerName: "list-1", currentSelectItemIndex: 1 } },
+    });
+    await flushAsync();
+
+    screen.onInput({
+      type: "Click",
+      raw: { jsonData: { containerID: 2, containerName: "list-1" } },
+    });
+    await flushAsync();
+
+    expect(dataService.toggleShoppingItem.mock.calls[0]?.[0]).toBe("b");
+    expect(dataService.toggleShoppingItem.mock.calls[1]?.[0]).toBe("a");
+  });
+
+  it("toggles hovered second item on no-payload click after moving selection", async () => {
+    const dataService = createDataService({
+      id: SHOPPING_LIST_ID,
+      title: "Shopping List",
+      items: [
+        { id: "milk", label: "[ ] Milch" },
+        { id: "bread", label: "[ ] Brot" },
+      ],
+    });
+    const screen = createShoppingListScreen(
+      SHOPPING_LIST_ID,
+      dataService,
+      createLogger(),
+      createRouter(),
+      vi.fn()
+    );
+    screen.onEnter();
+    await flushAsync();
+
+    screen.onInput({ type: "Down" });
+    expect(readSelectedIndex(screen.getViewModel())).toBe(1);
+
+    screen.onInput({
+      type: "Click",
+      raw: { jsonData: { containerID: 2, containerName: "list-1" } },
+    });
+    await flushAsync();
+
+    expect(dataService.toggleShoppingItem).toHaveBeenCalledWith("bread");
+  });
+
+  it("logs hover element and click target for shopping clicks", async () => {
+    const dataService = createDataService({
+      id: SHOPPING_LIST_ID,
+      title: "Shopping List",
+      items: [
+        { id: "milk", label: "[ ] Milch" },
+        { id: "bread", label: "[ ] Brot" },
+      ],
+    });
+    const logger = createLogger();
+    const screen = createShoppingListScreen(
+      SHOPPING_LIST_ID,
+      dataService,
+      logger,
+      createRouter(),
+      vi.fn()
+    );
+    screen.onEnter();
+    await flushAsync();
+
+    screen.onInput({
+      type: "Click",
+      raw: { listEvent: { currentSelectItemIndex: 1, eventType: 0 } },
+    });
+    await flushAsync();
+
+    const debugMessages = logger.debug.mock.calls.map((call) => String(call[0] ?? ""));
+    expect(debugMessages.some((message) => message.includes("Shopping list items ->"))).toBe(true);
+    expect(debugMessages.some((message) => message.includes("Shopping hover ->"))).toBe(true);
+    expect(debugMessages.some((message) => message.includes("Shopping click ->"))).toBe(true);
+    expect(debugMessages.some((message) => message.includes("Shopping toggle trigger ->"))).toBe(true);
+    expect(debugMessages.some((message) => message.includes("Shopping toggle result ->"))).toBe(true);
+    expect(debugMessages.some((message) => message.includes("Shopping list items after toggle ->"))).toBe(true);
+    expect(debugMessages.some((message) => message.includes("id:bread"))).toBe(true);
+  });
+
+  it("toggles second item when click payload comes via listEvent.toJson object", async () => {
+    const dataService = createDataService({
+      id: SHOPPING_LIST_ID,
+      title: "Shopping List",
+      items: [
+        { id: "milk", label: "[ ] Milch" },
+        { id: "bread", label: "[ ] Brot" },
+      ],
+    });
+    const screen = createShoppingListScreen(
+      SHOPPING_LIST_ID,
+      dataService,
+      createLogger(),
+      createRouter(),
+      vi.fn()
+    );
+    screen.onEnter();
+    await flushAsync();
+
+    screen.onInput({
+      type: "Click",
+      raw: {
+        listEvent: {
+          toJson: () => ({
+            CurrentSelect_ItemIndex: "1",
+            Event_Type: 0,
+          }),
+        },
+      },
+    });
+    await flushAsync();
+
+    expect(dataService.toggleShoppingItem).toHaveBeenCalledWith("bread");
+  });
+
+  it("supports one-based fallback index when payload is out of range", async () => {
+    const dataService = createDataService({
+      id: SHOPPING_LIST_ID,
+      title: "Shopping List",
+      items: [
+        { id: "milk", label: "[ ] Milch" },
+        { id: "bread", label: "[ ] Brot" },
+      ],
+    });
+    const screen = createShoppingListScreen(
+      SHOPPING_LIST_ID,
+      dataService,
+      createLogger(),
+      createRouter(),
+      vi.fn()
+    );
+    screen.onEnter();
+    await flushAsync();
+
+    screen.onInput({
+      type: "Click",
+      raw: { listEvent: { currentSelectItemIndex: 2, eventType: 0 } },
+    });
+    await flushAsync();
+
+    expect(dataService.toggleShoppingItem).toHaveBeenCalledWith("bread");
+  });
+
+  it("toggles by plain title name payload without checkbox prefix", async () => {
+    const dataService = createDataService({
+      id: SHOPPING_LIST_ID,
+      title: "Shopping List",
+      items: [
+        { id: "milk", label: "[ ] Milch" },
+        { id: "bread", label: "[ ] Brot" },
+      ],
+    });
+    const screen = createShoppingListScreen(
+      SHOPPING_LIST_ID,
+      dataService,
+      createLogger(),
+      createRouter(),
+      vi.fn()
+    );
+    screen.onEnter();
+    await flushAsync();
+
+    screen.onInput({
+      type: "Click",
+      raw: { listEvent: { currentSelectItemName: "Milch", eventType: 0 } },
+    });
+    await flushAsync();
+
+    expect(dataService.toggleShoppingItem).toHaveBeenCalledWith("milk");
   });
 });
 

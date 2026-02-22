@@ -23,13 +23,25 @@ import {
   clickByZeroBasedIndexSecond,
   clickWithUnknownPayload,
   downEvent,
+  hoverByLabelShopping,
+  hoverByProtoIndexSecond,
   upEvent,
 } from "./__fixtures__/dashboardInputEvents";
 import { resolveDashboardSelection } from "../../../src/screens/dashboard/resolveDashboardSelection";
 
 const dashboardItems: DashboardItem[] = [
-  { id: "dashboard-rss", label: "RSS-Feeds", listId: RSS_LIST_ID },
-  { id: "dashboard-shopping-list", label: "Shopping List", listId: SHOPPING_LIST_ID },
+  {
+    id: "dashboard-rss",
+    label: "RSS-Feeds",
+    listId: RSS_LIST_ID,
+    description: "RSS-Beschreibung",
+  },
+  {
+    id: "dashboard-shopping-list",
+    label: "Shopping List",
+    listId: SHOPPING_LIST_ID,
+    description: "Shopping-Beschreibung",
+  },
 ];
 
 describe("resolveDashboardSelection", () => {
@@ -78,6 +90,18 @@ describe("resolveDashboardSelection", () => {
     expect(result.targetListId).toBe(SHOPPING_LIST_ID);
     expect(result.nextSelectedIndex).toBe(1);
   });
+
+  it("updates selection on hover-like selection-change payload without navigation target", () => {
+    const result = runResolver(hoverByLabelShopping, 0);
+    expect(result.nextSelectedIndex).toBe(1);
+    expect(result.targetListId).toBeNull();
+  });
+
+  it("maps selection-change from proto-style index payload", () => {
+    const result = runResolver(hoverByProtoIndexSecond, 0);
+    expect(result.nextSelectedIndex).toBe(1);
+    expect(result.targetListId).toBeNull();
+  });
 });
 
 describe("DashboardScreen integration", () => {
@@ -100,6 +124,96 @@ describe("DashboardScreen integration", () => {
     screen.onInput(clickEvent);
 
     expect(toList).toHaveBeenCalledWith(SHOPPING_LIST_ID);
+  });
+
+  it("renders two columns and shows description for selected menu item", () => {
+    const screen = createDashboardScreen(
+      createRouter(),
+      createDataService(dashboardItems),
+      createLogger()
+    );
+
+    const viewModel = screen.getViewModel();
+    expect(viewModel.layoutMode).toBe("two-column");
+    expect(viewModel.containers).toHaveLength(2);
+    expect(viewModel.containers[0]?.type).toBe("list");
+    expect(viewModel.containers[1]?.type).toBe("text");
+    const infoContainer = viewModel.containers[1];
+    if (!infoContainer || infoContainer.type !== "text") {
+      throw new Error("Expected text info container");
+    }
+    expect(infoContainer.content).toContain("RSS-Beschreibung");
+  });
+
+  it("updates description when selected dashboard item changes", () => {
+    const screen = createDashboardScreen(
+      createRouter(),
+      createDataService(dashboardItems),
+      createLogger()
+    );
+
+    screen.onInput(downEvent);
+    const viewModel = screen.getViewModel();
+    const infoContainer = viewModel.containers[1];
+    if (!infoContainer || infoContainer.type !== "text") {
+      throw new Error("Expected text info container");
+    }
+    expect(infoContainer.content).toContain("Shopping-Beschreibung");
+  });
+
+  it("updates description on selection-change event without opening target list", () => {
+    const toList = vi.fn<(listId: string) => void>();
+    const screen = createDashboardScreen(
+      { toList, toDetail: vi.fn(), back: vi.fn() },
+      createDataService(dashboardItems),
+      createLogger()
+    );
+
+    screen.onInput(hoverByLabelShopping);
+    const viewModel = screen.getViewModel();
+    const infoContainer = viewModel.containers[1];
+    if (!infoContainer || infoContainer.type !== "text") {
+      throw new Error("Expected text info container");
+    }
+
+    expect(infoContainer.content).toContain("Shopping-Beschreibung");
+    expect(toList).not.toHaveBeenCalled();
+  });
+
+  it("updates description on proto-style selection-change index payload", () => {
+    const toList = vi.fn<(listId: string) => void>();
+    const screen = createDashboardScreen(
+      { toList, toDetail: vi.fn(), back: vi.fn() },
+      createDataService(dashboardItems),
+      createLogger()
+    );
+
+    screen.onInput(hoverByProtoIndexSecond);
+    const viewModel = screen.getViewModel();
+    const infoContainer = viewModel.containers[1];
+    if (!infoContainer || infoContainer.type !== "text") {
+      throw new Error("Expected text info container");
+    }
+
+    expect(infoContainer.content).toContain("Shopping-Beschreibung");
+    expect(toList).not.toHaveBeenCalled();
+  });
+
+  it("uses fallback text when no description exists", () => {
+    const screen = createDashboardScreen(
+      createRouter(),
+      createDataService([
+        { id: "dashboard-rss", label: "RSS-Feeds", listId: RSS_LIST_ID },
+      ]),
+      createLogger()
+    );
+
+    const viewModel = screen.getViewModel();
+    const infoContainer = viewModel.containers[1];
+    if (!infoContainer || infoContainer.type !== "text") {
+      throw new Error("Expected text info container");
+    }
+    expect(infoContainer.content).toContain("Keine Kurzbeschreibung verfuegbar.");
   });
 });
 
@@ -150,4 +264,8 @@ function createLogger() {
     info: () => {},
     debug: () => {},
   };
+}
+
+function createRouter() {
+  return { toList: vi.fn(), toDetail: vi.fn(), back: vi.fn() };
 }

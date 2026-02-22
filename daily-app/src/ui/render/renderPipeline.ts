@@ -22,6 +22,7 @@ export interface ListViewModel {
 
 export interface ViewModel {
   title: string;
+  layoutMode?: "stacked" | "two-column";
   containers: Array<TextViewModel | ListViewModel>;
 }
 

@@ -35,6 +35,11 @@ export function resolveDashboardSelection(
     return { nextSelectedIndex, targetListId: null };
   }
 
+  if (event.type === "SelectionChange") {
+    nextSelectedIndex = resolveClickSelectedIndex(items, nextSelectedIndex, event, maxIndex);
+    return { nextSelectedIndex, targetListId: null };
+  }
+
   if (event.type !== "Click") {
     return { nextSelectedIndex, targetListId: null };
   }

@@ -20,8 +20,18 @@ export class RssAppDataService implements DataService {
   private readonly dashboard: DashboardData = {
     title: "Dashboard",
     items: [
-      { id: "dashboard-rss", label: "RSS-Feeds", listId: RSS_LIST_ID },
-      { id: "dashboard-shopping-list", label: "Shopping List", listId: SHOPPING_LIST_ID },
+      {
+        id: "dashboard-rss",
+        label: "RSS-Feeds",
+        listId: RSS_LIST_ID,
+        description: "Aktuelle Meldungen aus konfigurierten RSS-Feeds lesen.",
+      },
+      {
+        id: "dashboard-shopping-list",
+        label: "Shopping List",
+        listId: SHOPPING_LIST_ID,
+        description: "Offene Einkaeufe abhaken und erledigte Eintraege pruefen.",
+      },
     ],
   };
 
@@ -137,7 +147,8 @@ export class RssAppDataService implements DataService {
 
     target.done = !target.done;
     await this.shoppingConfigService.saveEditableItems(nextItems);
-    this.shoppingItems = nextItems;
+    // Read back from storage so glasses state and companion LocalStorage stay in sync.
+    this.shoppingItems = await this.shoppingConfigService.loadEditableItems();
   }
 
   getDetail(itemId: string): DetailData {

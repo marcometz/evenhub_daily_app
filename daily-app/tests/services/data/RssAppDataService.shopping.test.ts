@@ -38,9 +38,14 @@ describe("RssAppDataService shopping list", () => {
       { id: "bread", title: "Brot", done: false, position: 1 },
     ];
     const saveEditableItems = vi.fn(async () => {});
+    let persistedItems = initialItems.map((item) => ({ ...item }));
+    const loadEditableItems = vi.fn(async () => persistedItems);
     const shoppingConfigService = {
-      loadEditableItems: vi.fn(async () => initialItems),
-      saveEditableItems,
+      loadEditableItems,
+      saveEditableItems: vi.fn(async (items: EditableShoppingItem[]) => {
+        saveEditableItems(items);
+        persistedItems = items.map((item) => ({ ...item }));
+      }),
     };
     const service = new RssAppDataService(createRssConfigServiceStub() as any, shoppingConfigService as any);
     await service.refreshList(SHOPPING_LIST_ID);
@@ -59,6 +64,7 @@ describe("RssAppDataService shopping list", () => {
       { id: SHOPPING_DIVIDER_ITEM_ID, label: "-------- Erledigt --------" },
       { id: "milk", label: "[x] Milch" },
     ]);
+    expect(loadEditableItems).toHaveBeenCalledTimes(2);
   });
 
   it("ignores toggle requests for unknown shopping IDs", async () => {
@@ -96,6 +102,24 @@ describe("RssAppDataService shopping list", () => {
     expect(dividerIndex).toBeGreaterThan(0);
     const doneLabels = list.items.slice(dividerIndex + 1).map((item) => item.label);
     expect(doneLabels).toEqual(["[x] A", "[x] C"]);
+  });
+
+  it("keeps all entries as done when no open entries exist", async () => {
+    const shoppingConfigService = {
+      loadEditableItems: vi.fn(async () => [
+        { id: "done-a", title: "A", done: true, position: 0 },
+        { id: "done-b", title: "B", done: true, position: 1 },
+      ]),
+      saveEditableItems: vi.fn(async () => {}),
+    };
+    const service = new RssAppDataService(createRssConfigServiceStub() as any, shoppingConfigService as any);
+    await service.refreshList(SHOPPING_LIST_ID);
+
+    const list = service.getList(SHOPPING_LIST_ID);
+    expect(list.items).toEqual([
+      { id: "done-a", label: "[x] A" },
+      { id: "done-b", label: "[x] B" },
+    ]);
   });
 });
 

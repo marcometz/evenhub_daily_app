@@ -1,4 +1,4 @@
-export type InputEventType = "Up" | "Down" | "Click" | "DoubleClick";
+export type InputEventType = "Up" | "Down" | "Click" | "DoubleClick" | "SelectionChange";
 
 export interface InputEvent {
   type: InputEventType;

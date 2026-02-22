@@ -2,6 +2,7 @@ export interface DashboardItem {
   id: string;
   label: string;
   listId: string;
+  description?: string;
 }
 
 export interface DashboardData {

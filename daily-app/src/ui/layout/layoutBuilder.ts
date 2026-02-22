@@ -14,22 +14,33 @@ export function buildLayout(viewModel: ViewModel): LayoutPayload {
 
   const hasText = viewModel.containers.some((container) => container.type === "text");
   const hasList = viewModel.containers.some((container) => container.type === "list");
-  const isSplit = hasText && hasList;
+  const isTwoColumn = viewModel.layoutMode === "two-column" && hasText && hasList;
+  const isStackedSplit = !isTwoColumn && hasText && hasList;
 
-  const textHeight = isSplit ? 96 : 288;
-  const listHeight = isSplit ? 192 : 288;
-  const listYOffset = isSplit ? 96 : 0;
+  const textX = isTwoColumn ? 288 : 0;
+  const textY = 0;
+  const textWidth = isTwoColumn ? 288 : 576;
+  const textHeight = isStackedSplit ? 96 : 288;
+
+  const listX = 0;
+  const listY = isStackedSplit ? 96 : 0;
+  const listWidth = isTwoColumn ? 280 : 576;
+  const listHeight = isStackedSplit ? 192 : 288;
 
   let eventCaptureAssigned = false;
 
   for (const container of viewModel.containers) {
     if (container.type === "text") {
       const text = container as TextViewModel;
+      const borderedText = isTwoColumn;
       textContainers.push({
-        xPosition: 0,
-        yPosition: 0,
-        width: 576,
+        xPosition: textX,
+        yPosition: textY,
+        width: textWidth,
         height: textHeight,
+        borderWidth: borderedText ? 1 : 0,
+        borderRdaius: borderedText ? 4 : 0,
+        paddingLength: borderedText ? 6 : 0,
         containerID: CONTAINER_IDS.text.id,
         containerName: CONTAINER_IDS.text.name,
         content: text.content,
@@ -43,16 +54,16 @@ export function buildLayout(viewModel: ViewModel): LayoutPayload {
     if (container.type === "list") {
       const list = container as ListViewModel;
       listContainers.push({
-        xPosition: 0,
-        yPosition: listYOffset,
-        width: 576,
+        xPosition: listX,
+        yPosition: listY,
+        width: listWidth,
         height: listHeight,
         containerID: CONTAINER_IDS.list.id,
         containerName: CONTAINER_IDS.list.name,
         isEventCapture: list.eventCapture && !eventCaptureAssigned ? 1 : 0,
         itemContainer: {
           itemCount: list.items.length,
-          itemWidth: 565,
+          itemWidth: Math.max(20, listWidth - 11),
           isItemSelectBorderEn: 1,
           itemName: list.items,
         },

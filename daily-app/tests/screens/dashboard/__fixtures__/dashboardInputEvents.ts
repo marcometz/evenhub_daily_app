@@ -45,6 +45,16 @@ export const clickWithUnknownPayload: InputEvent = {
   raw: { listEvent: { currentSelectItemName: "unknown" } },
 };
 
+export const hoverByLabelShopping: InputEvent = {
+  type: "SelectionChange",
+  raw: { listEvent: { currentSelectItemName: "Shopping List" } },
+};
+
+export const hoverByProtoIndexSecond: InputEvent = {
+  type: "SelectionChange",
+  raw: { listEvent: { CurrentSelect_ItemIndex: "2" } },
+};
+
 export const upEvent: InputEvent = {
   type: "Up",
 };
