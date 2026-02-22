@@ -26,6 +26,7 @@ export function mapEvenHubEvent(
     if (event.listEvent || event.textEvent) {
       return { type: "Click", raw: event };
     }
+
     if (hasListSelectionPayload(event)) {
       return { type: "SelectionChange", raw: event };
     }

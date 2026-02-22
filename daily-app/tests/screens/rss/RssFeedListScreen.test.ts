@@ -44,6 +44,58 @@ describe("RssFeedListScreen", () => {
     expect(readPageStatus(screen.getViewModel())).toBe("1/2");
   });
 
+  it("uses top-row selection after page switch so click without payload triggers [Zurueck]", async () => {
+    const list = createList(25);
+    const dataService = createDataService(list);
+    const router = createRouter();
+
+    const screen = createRssFeedListScreen("rss", dataService, createLogger(), router, vi.fn());
+    screen.onEnter();
+    await flushAsync();
+
+    screen.onInput({
+      type: "Click",
+      raw: { listEvent: { currentSelectItemIndex: 19, eventType: 0 } },
+    });
+
+    expect(readPageStatus(screen.getViewModel())).toBe("2/2");
+
+    screen.onInput({ type: "Click" });
+
+    expect(readPageStatus(screen.getViewModel())).toBe("1/2");
+    expect(router.toDetail).not.toHaveBeenCalled();
+  });
+
+  it("re-syncs to top-row selection when re-entering list from detail", async () => {
+    const list = createList(25);
+    const dataService = createDataService(list);
+    const router = createRouter();
+
+    const screen = createRssFeedListScreen("rss", dataService, createLogger(), router, vi.fn());
+    screen.onEnter();
+    await flushAsync();
+
+    screen.onInput({
+      type: "Click",
+      raw: { listEvent: { currentSelectItemIndex: 19, eventType: 0 } },
+    });
+    expect(readPageStatus(screen.getViewModel())).toBe("2/2");
+
+    screen.onInput({
+      type: "Click",
+      raw: { listEvent: { currentSelectItemIndex: 1, eventType: 0 } },
+    });
+    expect(router.toDetail).toHaveBeenCalledWith("item-20");
+
+    screen.onExit();
+    screen.onEnter();
+    await flushAsync();
+
+    screen.onInput({ type: "Click" });
+
+    expect(readPageStatus(screen.getViewModel())).toBe("1/2");
+  });
+
   it("keeps detail opening behavior for regular RSS rows", async () => {
     const dataService = createDataService({
       id: "rss",

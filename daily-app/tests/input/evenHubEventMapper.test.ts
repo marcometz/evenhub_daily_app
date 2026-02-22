@@ -108,14 +108,14 @@ describe("mapEvenHubEvent", () => {
     expect(mapped).toEqual({ type: "Down", raw: event });
   });
 
-  it("maps list event without eventType but with selection payload to SelectionChange", () => {
+  it("maps list event without eventType but with selection payload to Click for legacy compatibility", () => {
     const event = {
       listEvent: { currentSelectItemName: "Shopping List" },
     } as unknown as EvenHubEventPayload;
 
     const mapped = mapEvenHubEvent(event, mockOsEventTypeList);
 
-    expect(mapped).toEqual({ type: "SelectionChange", raw: event });
+    expect(mapped).toEqual({ type: "Click", raw: event });
   });
 
   it("maps list event without type and without selection payload to Click for legacy compatibility", () => {

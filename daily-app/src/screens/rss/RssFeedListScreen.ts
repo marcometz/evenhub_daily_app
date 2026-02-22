@@ -91,6 +91,8 @@ export function createRssFeedListScreen(
   return {
     id: `list:${listId}`,
     onEnter() {
+      // The host re-enters list screens with top-row hover, so keep local selection aligned.
+      selectedRowIndex = 0;
       logger.info(`Enter List ${listId}`);
       void refresh();
     },
@@ -133,17 +135,13 @@ export function createRssFeedListScreen(
 
         if (row?.kind === "next") {
           pageIndex = clamp(pageIndex + 1, 0, Math.max(0, paginated.pageCount - 1));
-          const nextPage = paginateRows(list, pageIndex, isLoading, loadError);
-          pageIndex = nextPage.pageIndex;
-          selectedRowIndex = selectFirstContentRow(nextPage.rows);
+          selectedRowIndex = 0;
           return;
         }
 
         if (row?.kind === "back") {
           pageIndex = clamp(pageIndex - 1, 0, Math.max(0, paginated.pageCount - 1));
-          const previousPage = paginateRows(list, pageIndex, isLoading, loadError);
-          pageIndex = previousPage.pageIndex;
-          selectedRowIndex = selectNextPageRow(previousPage.rows);
+          selectedRowIndex = 0;
           return;
         }
       }
@@ -169,22 +167,6 @@ export function createRssFeedListScreen(
       );
     },
   };
-}
-
-function selectFirstContentRow(rows: RssRow[]): number {
-  const firstItemIndex = rows.findIndex((row) => row.kind === "item");
-  if (firstItemIndex >= 0) {
-    return firstItemIndex;
-  }
-  return 0;
-}
-
-function selectNextPageRow(rows: RssRow[]): number {
-  const nextRowIndex = rows.findIndex((row) => row.kind === "next");
-  if (nextRowIndex >= 0) {
-    return nextRowIndex;
-  }
-  return Math.max(0, rows.length - 1);
 }
 
 function resolveRowSelectionIndex(
